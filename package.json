@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "daily-project-4",
   "version": "1.0.0",
   "description": "",
@@ -24,4 +24,3 @@
     "xlsx": "^0.18.5"
   }
 }
-
