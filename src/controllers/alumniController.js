@@ -111,6 +111,25 @@ exports.simulateBot = async (req, res) => {
         status = 'Belum Ditemukan di Sumber Publik';
         score = Math.floor(Math.random() * 25) + 5;  // 5-29
       }
+      
+      // Update DP4: Generate Fake Employment Data
+      const jobTypes = ['Swasta', 'Swasta', 'Swasta', 'PNS', 'BUMN', 'Wirausaha', 'Freelance', ''];
+      const positions = ['Software Engineer', 'Data Analyst', 'Project Manager', 'Staff Admin', 'HRD', 'Fullstack Developer', 'Dosen', 'Founder', 'Network Engineer', 'Dinas Daerah'];
+      const companies = ['PT Gojek Indonesia', 'Tokopedia', 'Kementerian Kominfo', 'Bank Mandiri', 'PT Telkom', 'RSUD', 'Freelance', 'Startup Lokal', 'PT Gudang Garam', 'CV Abadi'];
+      
+      let jenisPekerjaan = '';
+      let posisi = '';
+      let tempatKerja = '';
+
+      // Only assign jobs mostly if they are high confidence
+      if (score > 40) {
+          jenisPekerjaan = jobTypes[Math.floor(Math.random() * jobTypes.length)];
+          if (jenisPekerjaan) {
+              posisi = positions[Math.floor(Math.random() * positions.length)];
+              tempatKerja = companies[Math.floor(Math.random() * companies.length)];
+          }
+      }
+
       // Generate NIM realistis: tahunMasuk + kode prodi + sequence
       const tahunMasuk = tahun - 4; // asumsi 4 tahun kuliah
       const prodiCode = String(prodiList.indexOf(prodi) + 1).padStart(2, '0');
@@ -125,7 +144,10 @@ exports.simulateBot = async (req, res) => {
         kampus: 'Universitas Muhammadiyah Malang',
         status,
         confidenceScore: score,
-        jejak
+        jejak,
+        jenisPekerjaan,
+        posisi,
+        tempatKerja
       });
       addedCount++;
     }
