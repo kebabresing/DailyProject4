@@ -1,0 +1,13 @@
+node_modules
+.env
+.vercel
+
+# === DATABASE PRIVAT - JANGAN DI-COMMIT ===
+*.sqlite
+*.sqlite3
+*.db
+src/config/database.sqlite
+data/
+import/
+alumni_data.*
+gitlog.txt
