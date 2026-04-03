@@ -45,41 +45,6 @@ exports.delete = async (req, res) => {
   res.redirect('/data');
 };
 
-exports.simulateBot = async (req, res) => {
-  const currentData = await Alumni.getAll();
-  
-  // Update DP4: Generate Fake Employment Data
-  const jobTypes = ['Swasta', 'Swasta', 'Swasta', 'PNS', 'BUMN', 'Wirausaha', 'Freelance'];
-  const positions = ['Software Engineer', 'Data Analyst', 'Project Manager', 'Staff Admin', 'HRD', 'Fullstack Developer', 'Dosen', 'Founder', 'Network Engineer', 'Dinas Daerah'];
-  const companies = ['PT Gojek Indonesia', 'Tokopedia', 'Kementerian Kominfo', 'Bank Mandiri', 'PT Telkom', 'RSUD', 'Freelance', 'Startup Lokal', 'PT Gudang Garam', 'CV Abadi'];
-  
-  // Filter alumni yang BELUM punya jenis pekerjaan
-  const unassigned = currentData.filter(a => !a.jenisPekerjaan || a.jenisPekerjaan.trim() === '');
-  
-  let updatedCount = 0;
-
-  // Supaya ringan, bot hanya memproses max 20 orang per kali jalan
-  const toProcess = unassigned.slice(0, 20);
-
-  for (let alumni of toProcess) {
-      let jenisPekerjaan = jobTypes[Math.floor(Math.random() * jobTypes.length)];
-      let posisi = positions[Math.floor(Math.random() * positions.length)];
-      let tempatKerja = companies[Math.floor(Math.random() * companies.length)];
-
-      await Alumni.update(alumni.id, { 
-          jenisPekerjaan,
-          posisi,
-          tempatKerja
-      });
-      updatedCount++;
-  }
-
-  if (updatedCount > 0) {
-    res.redirect('/data?alert=bot-success');
-  } else {
-    res.redirect('/data?alert=bot-exist');
-  }
-};
 
 exports.getLaporan = async (req, res) => {
   const alumniList = await Alumni.getAll();
