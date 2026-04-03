@@ -1,4 +1,5 @@
 const Alumni = require('../models/alumniModel');
+const xlsx = require('xlsx');
 
 exports.index = async (req, res) => {
   const search = req.query.search || '';
@@ -6,7 +7,17 @@ exports.index = async (req, res) => {
   const limit = 50;
   const { alumniList, total } = await Alumni.getAllPaginated(search, page, limit);
   const totalPages = Math.ceil(total / limit);
-  res.render('index', { title: 'Data Master - Sistem Pelacakan Alumni', alumniList, search, page, totalPages, total });
+  
+  const fullList = await Alumni.getAll();
+  const teridentifikasi = fullList.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length;
+  const bekerja = fullList.filter(a => ['PNS', 'Swasta', 'BUMN'].includes(a.jenisPekerjaan)).length;
+  const wirausaha = fullList.filter(a => ['Wirausaha', 'Freelance'].includes(a.jenisPekerjaan)).length;
+
+  res.render('index', { 
+      title: 'Data Master - Sistem Pelacakan Alumni', 
+      alumniList, search, page, totalPages, total,
+      stats: { total: fullList.length, teridentifikasi, bekerja, wirausaha }
+  });
 };
 
 exports.formAdd = (req, res) => {
@@ -140,4 +151,30 @@ exports.getLaporan = async (req, res) => {
     title: 'Laporan & Statistik Pelacakan', 
     stats: { total, teridentifikasi, perluVerifikasi, belumDitemukan }
   });
+};
+
+exports.exportExcel = async (req, res) => {
+  const alumniList = await Alumni.getAll();
+  const data = alumniList.map(a => ({
+    'NIM': a.nim,
+    'Nama Lengkap': a.namaLengkap,
+    'Prodi': a.prodi,
+    'Tahun Lulus': a.tahunLulus,
+    'Status Pelacakan': a.status,
+    'Email': a.email || '-',
+    'No HP/WA': a.noHp || '-',
+    'LinkedIn': a.linkedin || '-',
+    'Tempat Bekerja': a.tempatKerja || '-',
+    'Posisi': a.posisi || '-',
+    'Jenis Pekerjaan': a.jenisPekerjaan || '-',
+    'Alamat Bekerja': a.alamatKerja || '-'
+  }));
+
+  const ws = xlsx.utils.json_to_sheet(data);
+  const wb = xlsx.utils.book_new();
+  xlsx.utils.book_append_sheet(wb, ws, "Data_Alumni");
+  
+  const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  res.attachment('Data_Alumni_DP4_Report.xlsx');
+  res.status(200).send(buffer);
 };
