@@ -336,7 +336,7 @@
     function openDetailModal(alumni) {
         document.getElementById('d-avatar').textContent = alumni.namaLengkap.charAt(0).toUpperCase();
         document.getElementById('d-nama').textContent = alumni.namaLengkap;
-        document.getElementById('d-prodi').textContent = alumni.prodi || '-';
+        document.getElementById('d-prodi').textContent = (alumni.nim ? alumni.nim + ' • ' : '') + (alumni.prodi || '-');
         document.getElementById('d-fakultas').textContent = alumni.fakultas || '-';
         document.getElementById('d-tahun').textContent = alumni.tahunLulus || '-';
         document.getElementById('d-kampus').textContent = alumni.kampus || '-';
