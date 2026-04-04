@@ -10,8 +10,26 @@ exports.index = async (req, res) => {
   
   const fullList = await Alumni.getAll();
   const teridentifikasi = fullList.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length;
-  const bekerja = fullList.filter(a => ['PNS', 'Swasta', 'BUMN'].includes(a.jenisPekerjaan)).length;
-  const wirausaha = fullList.filter(a => ['Wirausaha', 'Freelance'].includes(a.jenisPekerjaan)).length;
+  
+  // Hitung "Bekerja" dari field eksplisit ATAU dari ekstraksi teks jejak riwayat
+  const bekerja = fullList.filter(a => {
+      if (['PNS', 'Swasta', 'BUMN'].includes(a.jenisPekerjaan)) return true;
+      if (!a.jenisPekerjaan && a.jejak) {
+          const j = a.jejak.toLowerCase();
+          return j.includes('pt') || j.includes('bank') || j.includes('konsultan') || j.includes('staff') || j.includes('pns') || j.includes('dinas');
+      }
+      return false;
+  }).length;
+
+  // Hitung "Wirausaha" dari field eksplisit ATAU dari ekstraksi teks jejak riwayat
+  const wirausaha = fullList.filter(a => {
+      if (['Wirausaha', 'Freelance'].includes(a.jenisPekerjaan)) return true;
+      if (!a.jenisPekerjaan && a.jejak) {
+          const j = a.jejak.toLowerCase();
+          return j.includes('owner') || j.includes('founder') || j.includes('wirausaha') || j.includes('freelance');
+      }
+      return false;
+  }).length;
 
   res.render('index', { 
       title: 'Data Master - Sistem Pelacakan Alumni', 
