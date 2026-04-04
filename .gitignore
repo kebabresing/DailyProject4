@@ -10,4 +10,4 @@ src/config/database.sqlite
 data/
 import/
 alumni_data.*
-gitlog.txt
+*.txt
