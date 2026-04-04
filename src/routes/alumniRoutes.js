@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const alumniController = require('../controllers/alumniController');
-const { requireLogin, getLogin, postLogin, logout } = require('../controllers/authController');
+const { requireLogin } = require('../middleware/auth');
+const { getLogin, postLogin, logout } = require('../controllers/authController');
 
 // Auth routes (no login required)
 router.get('/login', getLogin);

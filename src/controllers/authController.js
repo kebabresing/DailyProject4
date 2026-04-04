@@ -1,13 +1,5 @@
 const { findUser, verifyPassword } = require('../config/auth');
 
-// Middleware: cek apakah sudah login
-function requireLogin(req, res, next) {
-  if (req.session && req.session.user) {
-    return next();
-  }
-  return res.redirect('/login');
-}
-
 // GET /login
 function getLogin(req, res) {
   if (req.session && req.session.user) return res.redirect('/');
@@ -37,4 +29,4 @@ function logout(req, res) {
   });
 }
 
-module.exports = { requireLogin, getLogin, postLogin, logout };
+module.exports = { getLogin, postLogin, logout };
