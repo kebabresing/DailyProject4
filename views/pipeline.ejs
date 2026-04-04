@@ -121,8 +121,8 @@
                             <div class="ml-4 flex-1">
                                 <h4 class="text-lg font-bold text-slate-800 font-outfit mb-1">Algorithmic Confidence</h4>
                                 <div class="flex gap-2">
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Name: Match</span>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Edu: Partial</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold <%= isHigh ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-700 border-slate-200' %>">Name: Match</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold <%= isHigh ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200' %>">Edu: <%= isHigh ? 'Match' : 'Partial/Ambiguous' %></span>
                                 </div>
                             </div>
                         </div>
@@ -135,8 +135,9 @@
                                 </a>
                                 <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">Scraped: Today, 08:30 AM</span>
                             </div>
-                            <div class="text-sm text-slate-700 leading-relaxed font-medium">
-                                "Found continuous employment record aligning with graduation year (<%= alumni.tahunLulus %>). Currently listed as <strong class="text-slate-900 bg-emerald-100 px-1 rounded">Senior Staff at Bank BCA</strong> in Jakarta, matching the timeline."
+                            <div class="text-sm text-slate-700 leading-relaxed font-medium bg-white p-3 rounded-lg border border-slate-100 shadow-inner">
+                                <span class="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">Raw Evidence Footprint:</span>
+                                "<%= alumni.jejak ? alumni.jejak : 'Pipeline extracted unstructured footprint data without specific readable labels.' %>"
                             </div>
                         </div>
 
