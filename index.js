@@ -4,6 +4,7 @@ const path = require('path');
 const logger = require('morgan');
 const session = require('express-session');
 const alumniRoutes = require('./src/routes/alumniRoutes');
+const trackerRoutes = require('./src/routes/trackerRoutes');
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/', alumniRoutes);
+app.use('/', trackerRoutes);
 
 // Export app for Vercel, or listen locally
 const PORT = process.env.PORT || 3000;

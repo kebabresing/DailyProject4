@@ -22,7 +22,9 @@
 
 Sistem ini dikembangkan pada *Daily Project 4* dengan penambahan:
 - **11 titik data baru** (sosial media, pekerjaan, kontak lengkap)
-- **Pipeline verifikasi data** berbasis confidence score
+- **Intelligent Tracker** — modul pelacakan otomatis berbasis sumber data publik
+- **Pipeline verifikasi data** berbasis confidence score & cross-validation
+- **Scheduler otomatis** untuk pelacakan berkala tanpa intervensi manual
 - **Integrasi cloud database** via Supabase
 - **Sistem autentikasi** berbasis session & password hashing
 
@@ -44,17 +46,45 @@ Sistem ini dikembangkan pada *Daily Project 4* dengan penambahan:
 - Password di-hash dengan `bcryptjs`
 - Middleware autentikasi tersentralisasi di `src/middleware/auth.js`
 
-### 3. 🤖 Pipeline Verifikasi Data
-- Simulasi bot pelacak alumni *(mocking API)*
-- Sistem **confidence score** untuk setiap kandidat yang ditemukan
+### 3. 🤖 Intelligent Tracker *(BARU)*
+Modul pelacakan otomatis berbasis sumber data publik yang valid:
+
+| Komponen | Fungsi |
+|---|---|
+| **Query Builder** | Membentuk variasi nama + konteks pencarian (kampus, prodi, tahun lulus, lokasi) |
+| **Scoring Engine** | Menghitung confidence score berdasarkan kecocokan multi-faktor (nama, edukasi, lokasi, pekerjaan) |
+| **Disambiguator** | Mengklasifikasikan hasil: *Kemungkinan Kuat*, *Perlu Verifikasi Manual*, atau *Tidak Cocok* |
+| **Cross-Validator** | Membandingkan temuan antar sumber untuk meningkatkan akurasi (+10% jika ≥2 sumber sepakat) |
+| **Evidence Builder** | Menyimpan jejak bukti lengkap: link, ringkasan, tanggal, dan confidence score |
+| **Scheduler** | Pelacakan berkala otomatis (configurable interval & batch size) |
+
+**Sumber data publik yang dilacak:**
+- 💼 LinkedIn — profil profesional
+- 📄 Google Scholar — publikasi akademik
+- 🔬 ResearchGate — profil riset
+- 📸 Instagram — profil publik
+- 👤 Facebook — profil publik
+
+**Alur kerja:**
+1. Sistem mengambil data alumni yang sudah ada *(tidak membuat data palsu)*
+2. Membentuk query pencarian + variasi nama
+3. Mengekstrak informasi dari sumber publik
+4. Menghitung confidence score & klasifikasi otomatis
+5. Cross-validation antar sumber
+6. Admin me-review: **Approve** (data diperkaya ke profil alumni) atau **Reject** (tandai sebagai false positive)
+7. Seluruh proses terekam untuk audit
+
+### 4. 🔍 Verification Pipeline
+- Staging area untuk data yang belum terverifikasi
+- Side-by-side comparison: data asli vs data scraped
 - Verifikasi manual oleh admin: **Approve / Reject**
 - Data asli tidak pernah ditimpa sebelum diverifikasi *(audit-safe)*
 
-### 4. ☁️ Cloud Database (Supabase)
+### 5. ☁️ Cloud Database (Supabase)
 - Migrasi dari local SQLite ke **PostgreSQL Cloud** via Supabase
-- Memastikan ketersediaan data saat deployment ke Vercel *(no filesystem dependency)*
+- Memastikan ketersediaan data saat deployment ke Vercel
 
-### 5. 📱 UI Responsif & Detail Modal
+### 6. 📱 UI Responsif & Detail Modal
 - Tampilan detail alumni via **popup modal** ter-animasi *(glassmorphism)*
 - Responsif di desktop & mobile
 
@@ -64,10 +94,11 @@ Sistem ini dikembangkan pada *Daily Project 4* dengan penambahan:
 
 | Layer | Teknologi |
 |---|---|
-| **Frontend** | EJS (Embedded JS Templates), HTML5, CSS3 |
+| **Frontend** | EJS (Embedded JS Templates), HTML5, CSS3, TailwindCSS (CDN) |
 | **Backend** | Node.js, Express.js |
 | **Database** | SQLite (lokal) + Supabase PostgreSQL (cloud) |
 | **Auth** | express-session, bcryptjs |
+| **Tracking** | Custom tracker engine (query builder, scorer, disambiguator) |
 | **Deployment** | Vercel |
 | **Dev Tools** | nodemon, morgan, dotenv |
 
@@ -75,23 +106,29 @@ Sistem ini dikembangkan pada *Daily Project 4* dengan penambahan:
 
 ## 📂 Struktur Proyek
 
-Menggunakan pola **Model-View-Controller (MVC)**:
+Menggunakan pola **Model-View-Controller (MVC)** yang diperluas dengan **Service Layer** untuk tracking:
 
 ```
 📁 Daily Project 4/
 ├── 📁 src/
 │   ├── 📁 config/
 │   │   ├── auth.js             # Data akun & logika hashing password
-│   │   └── database.js         # Koneksi & abstraksi Supabase / SQLite
+│   │   ├── database.js         # Koneksi & abstraksi Supabase / SQLite
+│   │   └── trackingDB.js       # Schema & CRUD tabel tracking (3 tabel)
 │   ├── 📁 controllers/
 │   │   ├── authController.js   # Handler login, logout
-│   │   └── alumniController.js # Logika bisnis CRUD & pipeline
+│   │   ├── alumniController.js # Logika bisnis CRUD & pipeline
+│   │   └── trackerController.js # Handler intelligent tracker & dashboard
 │   ├── 📁 middleware/
 │   │   └── auth.js             # requireLogin — proteksi route
 │   ├── 📁 models/
 │   │   └── alumniModel.js      # Pemanggil fungsi abstraksi DB
-│   └── 📁 routes/
-│       └── alumniRoutes.js     # Definisi seluruh rute URL
+│   ├── 📁 routes/
+│   │   ├── alumniRoutes.js     # Rute data alumni & pipeline
+│   │   └── trackerRoutes.js    # Rute intelligent tracker
+│   └── 📁 services/
+│       ├── trackerEngine.js    # Core: query builder, scorer, disambiguator
+│       └── trackerScheduler.js # Scheduler pelacakan berkala otomatis
 ├── 📁 views/
 │   ├── 📁 partials/
 │   │   ├── header.ejs          # Navbar & head HTML
@@ -100,7 +137,8 @@ Menggunakan pola **Model-View-Controller (MVC)**:
 │   ├── form.ejs                # Form input/edit alumni (11 field)
 │   ├── login.ejs               # Halaman autentikasi admin
 │   ├── laporan.ejs             # Halaman laporan & statistik
-│   └── pipeline.ejs            # Dashboard verifikasi pipeline
+│   ├── pipeline.ejs            # Dashboard verifikasi pipeline
+│   └── tracker.ejs             # Dashboard intelligent tracker monitoring
 ├── 📁 public/
 │   └── logo.png
 ├── 📁 import/                  # (di-gitignore) Script & data import Excel
@@ -167,7 +205,9 @@ http://localhost:3000
 | 3 | **Functional Suitability** | CRUD 11 field alumni | Field `camelCase` terpetakan ke kolom `snake_case` DB | ✅ Lulus |
 | 4 | **Usability** | Cek detail dari ratusan data | Modal popup menampilkan 18 kolom secara instan | ✅ Lulus |
 | 5 | **Reliability** | Bot simulate di Vercel (cloud) | Tidak ada konflik filesystem, data aman di Supabase | ✅ Lulus |
-| 6 | **Maintainability** | Penambahan middleware baru | Middleware terisolasi di `src/middleware/`, tidak merusak controller | ✅ Lulus |
+| 6 | **Maintainability** | Penambahan modul tracker baru | Modul terisolasi di `services/` & `config/trackingDB.js`, tidak merusak sistem lama | ✅ Lulus |
+| 7 | **Functional Suitability** | Tracker: Run Scan 10 alumni | Query builder, scorer, dan cross-validator berjalan; hasil tersimpan di DB tracking | ✅ Lulus |
+| 8 | **Auditability** | Tracker: Lihat audit trail | Semua query pencarian, hasil, dan keputusan admin tersimpan sebagai evidence | ✅ Lulus |
 
 ---
 
