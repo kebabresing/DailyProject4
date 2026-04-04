@@ -1,124 +1,182 @@
-# 🎓 Alumni Tracker - Daily Project 4
+# 🎓 Alumni Tracker — Daily Project 4
 
 **Akhmad Zamri Ardani | 202310370311406**  
-**Rekayasa Kebutuhan A – Universitas Muhammadiyah Malang**
+**Rekayasa Kebutuhan A — Universitas Muhammadiyah Malang**
+
+---
 
 ![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
 ![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+![EJS](https://img.shields.io/badge/EJS-B4CA65?style=for-the-badge&logo=ejs&logoColor=black)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 
 > **Sistem Informasi Manajemen & Pelacakan Profil Publik Alumni Berbasis Web Terintegrasi Cloud**
-> 
-> *Proyek ini dikembangkan untuk merealisasikan **Daily Project 4** dengan menambahkan manajemen data ekstensif (Sosial Media, Informasi Pekerjaan, dan Kontak Lengkap) serta integrasi Cloud Relational Database menggunakan Supabase dan Sistem Kredensial Login.*
----
-
-## 📖 Deskripsi Sistem
-
-**Alumni Tracker** adalah prototype sistem informasi berbasis web yang dirancang untuk membantu admin institusi/kampus dalam melacak dan mengelola data jejak karir alumni secara detail. 
-
-Sistem ini dikembangkan dari versi sebelumnya dengan dukungan perluasan 11 titik data (*data points*) sesuai perancangan *Daily Project 4*. Semua data pada sistem dilindungi, tidak bersifat publik, dan digunakan **hanya untuk kepentingan pembelajaran**.
-
-### Target Pengguna (Sesuai Use Case)
-1. **Admin / HRD Institusi:** Bertugas login dengan akses rahasia, meninjau hasil pencarian bot otomatis, serta melakukan pemutakhiran manual terhadap profil karir alumni.
 
 ---
 
-## ✨ Fitur Utama (Core Features DP4 Updates)
+## 📖 Deskripsi
 
-1. 🗄️ **Manajemen Profil Ekstensif (11 Entitas Baru)**
-   * **Kontak Pribadi**: Terintegrasi pengelolaan data *Email* dan *No. HP/WhatsApp*.
-   * **Sosial Media**: Manajemen tersentrasiliasi *LinkedIn*, *Instagram*, *Facebook*, dan *TikTok*.
-   * **Manajemen Karir**: Pelacakan komprehensif atas *Tempat Kerja*, *Posisi/Jabatan*, *Alamat Tempat Bekerja*, tautan *Sosmed Kantor*.
-   * **Klasifikasi Pekerjaan**: Drop-down terstandarisasi untuk klasifikasi *(PNS, Swasta, Wirausaha, dll)*.
-2. 🔐 **Sistem Autentikasi Keamanan (Admin Panel)**
-   * Seluruh sistem dan route manajemen data kini diproteksi (*Protected Routes*) menggunakan mekanisme `express-session` dan *hashing password* via `bcryptjs`.
-3. ☁️ **Integrasi Cloud Database Ter-Desentralisasi (Supabase)**
-   * Ber-migrasi dari standar *Local File Storage* menuju *PostgreSQL Cloud Management* melalui inisiasi **Supabase**. Memastikan ketersediaan *Database Master* tanpa risiko kehilangan data saat proses deployment ke **Vercel**.
-4. 🤖 **Simulasi Bot Pelacak Lanjutan (Automated Scheduler)**
-   * Fitur interaktif *Satu Klik* yang secara realistis mensimulasikan pencarian *(mocking API)* dan pendataan kandidat baru.
-5. 📱 **Mobile Responsive dengan Interactive Detail Modal**
-   * Pengecekan data detail disajikan dengan elegan melalui *Pop-Up Detail Modal* ter-animasi (glassmorphism/blur effect) cukup dengan mengklik baris data, dengan tetap mempertahankan proporsi layar *mobile HTML responsive*.
+**Alumni Tracker** adalah sistem informasi berbasis web yang dirancang untuk membantu admin institusi/kampus dalam melacak dan mengelola data jejak karir alumni secara terperinci.
+
+Sistem ini dikembangkan pada *Daily Project 4* dengan penambahan:
+- **11 titik data baru** (sosial media, pekerjaan, kontak lengkap)
+- **Pipeline verifikasi data** berbasis confidence score
+- **Integrasi cloud database** via Supabase
+- **Sistem autentikasi** berbasis session & password hashing
+
+> ⚠️ Semua data bersifat privat dan digunakan **hanya untuk kepentingan pembelajaran**.
 
 ---
 
-## 🛠️ Teknologi yang Digunakan
+## ✨ Fitur Utama
 
-1. **Frontend:** EJS (Embedded Javascript Templates) + HTML5 + [TailwindCSS (CDN)](https://tailwindcss.com/)
-2. **Backend:** Node.js dipadukan dengan *Framework* Express.js.
-3. **Database:** Supabase (Relasional PostgreSQL Cloud Platform)
+### 1. 🗄️ Manajemen Profil Ekstensif
+- **Kontak Pribadi** — Email & No. HP/WhatsApp
+- **Sosial Media** — LinkedIn, Instagram, Facebook, TikTok
+- **Informasi Karir** — Tempat kerja, posisi/jabatan, alamat kantor, sosmed kantor
+- **Klasifikasi Pekerjaan** — PNS, Swasta, Wirausaha, dll. *(drop-down terstandarisasi)*
+
+### 2. 🔐 Sistem Autentikasi Admin
+- Semua route diproteksi via **Protected Routes**
+- Manajemen sesi menggunakan `express-session`
+- Password di-hash dengan `bcryptjs`
+- Middleware autentikasi tersentralisasi di `src/middleware/auth.js`
+
+### 3. 🤖 Pipeline Verifikasi Data
+- Simulasi bot pelacak alumni *(mocking API)*
+- Sistem **confidence score** untuk setiap kandidat yang ditemukan
+- Verifikasi manual oleh admin: **Approve / Reject**
+- Data asli tidak pernah ditimpa sebelum diverifikasi *(audit-safe)*
+
+### 4. ☁️ Cloud Database (Supabase)
+- Migrasi dari local SQLite ke **PostgreSQL Cloud** via Supabase
+- Memastikan ketersediaan data saat deployment ke Vercel *(no filesystem dependency)*
+
+### 5. 📱 UI Responsif & Detail Modal
+- Tampilan detail alumni via **popup modal** ter-animasi *(glassmorphism)*
+- Responsif di desktop & mobile
 
 ---
 
-## 📂 Struktur Project 
+## 🛠️ Teknologi
 
-Menerapkan pola desain *Model-View-Controller* (MVC) untuk kemudahan *maintenance*:
+| Layer | Teknologi |
+|---|---|
+| **Frontend** | EJS (Embedded JS Templates), HTML5, CSS3 |
+| **Backend** | Node.js, Express.js |
+| **Database** | SQLite (lokal) + Supabase PostgreSQL (cloud) |
+| **Auth** | express-session, bcryptjs |
+| **Deployment** | Vercel |
+| **Dev Tools** | nodemon, morgan, dotenv |
 
-```text
+---
+
+## 📂 Struktur Proyek
+
+Menggunakan pola **Model-View-Controller (MVC)**:
+
+```
 📁 Daily Project 4/
 ├── 📁 src/
 │   ├── 📁 config/
-│   │   ├── auth.js             # Logic Hashing Account & Keamanan
-│   │   └── database.js         # Abstraksi Mapper & Koneksi Supabase PostgresSQL
+│   │   ├── auth.js             # Data akun & logika hashing password
+│   │   └── database.js         # Koneksi & abstraksi Supabase / SQLite
 │   ├── 📁 controllers/
-│   │   ├── adminController.js  # Mengelola Sesi, Login, Request Middleware
-│   │   └── alumniController.js # Logika bisnis operasional CRUD
+│   │   ├── authController.js   # Handler login, logout
+│   │   └── alumniController.js # Logika bisnis CRUD & pipeline
+│   ├── 📁 middleware/
+│   │   └── auth.js             # requireLogin — proteksi route
 │   ├── 📁 models/
-│   │   └── alumniModel.js      # Struktur pemanggil fungsi dari abstraction DB
+│   │   └── alumniModel.js      # Pemanggil fungsi abstraksi DB
 │   └── 📁 routes/
-│       └── alumniRoutes.js     # Definisi alur rute URL Protected Access
+│       └── alumniRoutes.js     # Definisi seluruh rute URL
 ├── 📁 views/
-│   ├── 📁 partials/            # Komponen Header, Footer, & Navbar
-│   ├── index.ejs               # Halaman utama (Tabel Web Master) & Detail Modal
-│   ├── form.ejs                # Halaman Form Dinamis (Input Kontak, Sosial Media, & Pekerjaan Lengkap)
-│   ├── login.ejs               # Antarmuka Sistem Autentikasi
-│   └── laporan.ejs             # Halaman Laporan & Statistik
-├── .env                        # Variabel Supabase URL & Secrets
+│   ├── 📁 partials/
+│   │   ├── header.ejs          # Navbar & head HTML
+│   │   └── footer.ejs          # Footer global
+│   ├── index.ejs               # Halaman utama — tabel data & detail modal
+│   ├── form.ejs                # Form input/edit alumni (11 field)
+│   ├── login.ejs               # Halaman autentikasi admin
+│   ├── laporan.ejs             # Halaman laporan & statistik
+│   └── pipeline.ejs            # Dashboard verifikasi pipeline
+├── 📁 public/
+│   └── logo.png
+├── 📁 import/                  # (di-gitignore) Script & data import Excel
+├── .env                        # Secrets — tidak di-commit
+├── .env.example                # Template konfigurasi
+├── vercel.json                 # Konfigurasi deployment Vercel
 ├── package.json
-├── index.js                    # Entry point server Web Server Node.js
-└── README.md                   # Dokumentasi teknis terperinci
+├── index.js                    # Entry point server Node.js
+└── README.md
 ```
 
 ---
 
-## 🚀 Panduan Menjalankan Web Secara Lokal
+## 🚀 Cara Menjalankan Secara Lokal
 
-### Cara Instalasi & Menjalankan:
+### 1. Clone Repositori
 
-1. **Unduh / Clone Repositori Ini.**
-2. **Buka Terminal / Command Prompt** dan arahkan ke dalam folder proyek (`cd Daily Project 4`).
-3. **Install Dependensi Penting:**
-   ```bash
-   npm install
-   ```
-4. **Siapkan File Konfigurasi Rahasia (`.env`):**
-   Buat atau sesuaikan file bernama `.env` di folder *root* dan isi propertinya dengan URL serta API KEY Supabase anda:
-   ```properties
-   SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
-   SUPABASE_KEY=YOUR_SUPABASE_ANON_KEY
-   SESSION_SECRET=pilih_kalimat_rahasia_bebas
-   NODE_ENV=development
-   ```
-5. **Jalankan Server Eksekusi:**
-   ```bash
-   npm start
-   ```
-6. **Buka Browser Anda** lalu akses alamat lokal:
-   ```text
-   http://localhost:3000
-   ```
+```bash
+git clone https://github.com/kebabresing/DailyProject4.git
+cd DailyProject4
+```
+
+### 2. Install Dependensi
+
+```bash
+npm install
+```
+
+### 3. Konfigurasi Environment
+
+Buat file `.env` di root proyek (lihat `.env.example` sebagai referensi):
+
+```properties
+SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
+SUPABASE_KEY=YOUR_SUPABASE_ANON_KEY
+SESSION_SECRET=pilih_kalimat_rahasia_bebas
+NODE_ENV=development
+```
+
+### 4. Jalankan Server
+
+```bash
+# Mode development (auto-restart saat ada perubahan)
+npm run dev
+
+# Mode production
+npm start
+```
+
+### 5. Buka di Browser
+
+```
+http://localhost:3000
+```
+
 ---
 
-## 🧪 Pengujian Sistem (Aspek Kualitas Kinerja Baru)
+## 🧪 Pengujian Sistem (ISO 25010)
 
-Berikut adalah pengujian perancangan spesifikasi sistem terbaru di DP4:
-
-| No | Aspek Kualitas (Standar ISO 25010) | Skenario Pengujian (Test Case) | Hasil yang Diharapkan | Status / Kesimpulan |
-|:---|:---|:---|:---|:---|
-| 1 | **Security** (Keamanan Data) | Mencoba akses Rute URL `/data` sebelum melakukan Login. | Sistem secara ketat menolak pengaksesan dan me- *redirect* otomatis ke halaman URL Login. | ✅ **Lulus / Sesuai** |
-| 2 | **Security** (Keamanan Data) | Melakukan Bypass Password dari Database Backend. | Kombinasi karakter password terlindungi enkripsi `bcrypt` yang telah di *salt*. Peretasan sulit. | ✅ **Lulus / Sesuai** |
-| 3 | **Functional Suitability** (Fungsionalitas) | Melakukan CRUD 11 data *(Sosmed, Jobs, dsb)* pada form input Alumni Baru. | Semua Field Map data dapat memetakan *camelCase* backend NodeJS tepat pada kolom *Snake_Case* Database Supabase. | ✅ **Lulus / Sesuai** |
-| 4 | **Usability** (Kebergunaan) | Mengecek kelengkapan data *(Email dsb)* pada ratusan data. | Modal Popup memfasilitasi penayangan seluruh detail 18 kolom secara instan tanpa perlu menuju tab/halaman baru. | ✅ **Lulus / Sesuai** |
-| 5 | **Reliability** (Keandalan) | Mamasukkan *Dummy Bot Generate* / Modul Simulator ke environment Web Publik (*Vercel*). | Tidak terjadi intervensi *filesystem readonly* dan penambahan simulasi aman menyempil di Cloud Database Supabase milik publik. | ✅ **Lulus / Sesuai** |
+| No | Aspek Kualitas | Skenario Pengujian | Hasil yang Diharapkan | Status |
+|:--|:--|:--|:--|:--:|
+| 1 | **Security** | Akses `/data` sebelum login | Redirect otomatis ke `/login` | ✅ Lulus |
+| 2 | **Security** | Bypass password dari backend | Password terlindungi hash `bcrypt` + salt | ✅ Lulus |
+| 3 | **Functional Suitability** | CRUD 11 field alumni | Field `camelCase` terpetakan ke kolom `snake_case` DB | ✅ Lulus |
+| 4 | **Usability** | Cek detail dari ratusan data | Modal popup menampilkan 18 kolom secara instan | ✅ Lulus |
+| 5 | **Reliability** | Bot simulate di Vercel (cloud) | Tidak ada konflik filesystem, data aman di Supabase | ✅ Lulus |
+| 6 | **Maintainability** | Penambahan middleware baru | Middleware terisolasi di `src/middleware/`, tidak merusak controller | ✅ Lulus |
 
 ---
+
+## 📄 Lisensi
+
+Proyek ini dibuat untuk keperluan akademik. Tidak untuk digunakan secara komersial.
+
+---
+
+<div align="center">
+  <sub>Dibuat dengan ❤️ untuk Daily Project 4 — RPL UMM 2025</sub>
+</div>
