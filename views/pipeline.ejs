@@ -1,0 +1,180 @@
+<%- include('partials/header') %>
+
+<div class="px-4 py-8 sm:px-0">
+    <div class="mb-8 border-b border-slate-200/60 pb-5 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+            <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-lg text-indigo-700 text-xs font-bold uppercase tracking-wider mb-3">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                Live Intelligence Pipeline
+            </div>
+            <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-indigo-800 font-outfit tracking-tight">Data Scraping & Verification Pipeline</h1>
+            <p class="mt-2 text-sm text-slate-500 font-medium max-w-2xl">
+                High-precision identity matching engine. Monitors data extraction, disambiguation, and manual verification workflows to ensure 100% evidence-backed alumni intelligence without corrupting original records.
+            </p>
+        </div>
+        <button id="runPipelineBtn" class="inline-flex justify-center items-center px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all font-outfit btn-animate">
+            <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Trigger Global Pipeline
+        </button>
+    </div>
+
+    <!-- Active Pipeline Stage Status -->
+    <div class="relative mb-12">
+        <div class="absolute inset-0 flex items-center" aria-hidden="true">
+            <div class="w-full border-t-2 border-slate-200"></div>
+        </div>
+        <div class="relative flex justify-between">
+            <div class="bg-slate-50 px-2" title="Generating boolean search queries based on master data">
+                <div class="h-10 w-10 bg-indigo-600 rounded-full flex items-center justify-center ring-4 ring-slate-50 shadow-md transition-all font-bold text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></div>
+                <div class="absolute -bottom-6 -ml-3 text-xs font-bold text-indigo-700">Query Gen</div>
+            </div>
+            <div class="bg-slate-50 px-2" title="Extracting public profile footprints (LinkedIn, Scholar)">
+                <div class="h-10 w-10 bg-indigo-600 rounded-full flex items-center justify-center ring-4 ring-slate-50 shadow-md transition-all font-bold text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+                <div class="absolute -bottom-6 -ml-1 text-xs font-bold text-indigo-700">Scraping</div>
+            </div>
+            <div class="bg-slate-50 px-2" title="Filtering noise and eliminating false positives">
+                <div class="h-10 w-10 bg-white border-2 border-indigo-600 rounded-full flex items-center justify-center ring-4 ring-slate-50 shadow-md transition-all text-indigo-600 font-bold animate-pulse"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg></div>
+                <div class="absolute -bottom-6 -ml-5 text-xs font-bold text-indigo-700">Disambiguation</div>
+            </div>
+            <div class="bg-slate-50 px-2" title="Manual verification required for matching candidates">
+                <div class="h-10 w-10 bg-slate-200 border-2 border-slate-300 rounded-full flex items-center justify-center ring-4 ring-slate-50 transition-all text-slate-500 font-bold"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
+                <div class="absolute -bottom-6 -ml-2 text-xs font-bold text-slate-500">Verification</div>
+            </div>
+            <div class="bg-slate-50 px-2" title="Secure push to database without overwriting original records">
+                <div class="h-10 w-10 bg-slate-200 border-2 border-slate-300 rounded-full flex items-center justify-center ring-4 ring-slate-50 transition-all text-slate-500 font-bold"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg></div>
+                <div class="absolute -bottom-6 -ml-2 text-xs font-bold text-slate-500">Final Log</div>
+            </div>
+        </div>
+    </div>
+
+    <% if (pendingAlumni.length === 0) { %>
+        <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl p-12 text-center shadow-lg">
+            <svg class="h-16 w-16 text-emerald-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <h2 class="text-2xl font-bold text-slate-800 font-outfit">All Clear! No Pending Verifications</h2>
+            <p class="text-slate-500 mt-2 text-sm max-w-md mx-auto">The pipeline currently has no actionable matches. Start the background process to begin scanning public footprints for new updates.</p>
+        </div>
+    <% } else { %>
+        <div class="grid grid-cols-1 gap-8">
+            <% pendingAlumni.forEach(alumni => { %>
+                <div class="bg-white border rounded-2xl shadow-xl shadow-slate-200/40 overflow-hidden ring-1 ring-slate-200/50 flex flex-col xl:flex-row">
+                    
+                    <!-- MASTER DATA (Original) -->
+                    <div class="flex-1 p-6 sm:p-8 bg-slate-50/50 border-b xl:border-b-0 xl:border-r border-slate-200/60">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-sm font-black tracking-widest text-slate-400 uppercase">Original Identity Data</h3>
+                            <span class="px-2.5 py-1 text-xs font-bold bg-slate-200 text-slate-600 rounded-md">Reference</span>
+                        </div>
+                        <div class="flex items-center mb-6">
+                            <div class="h-16 w-16 bg-slate-300 rounded-2xl flex items-center justify-center text-white text-3xl font-bold font-outfit shadow-inner"><%= alumni.namaLengkap.charAt(0) %></div>
+                            <div class="ml-4">
+                                <h4 class="text-xl font-bold text-slate-800 font-outfit"><%= alumni.namaLengkap %></h4>
+                                <p class="text-sm text-slate-500 font-medium"><%= alumni.nim || '-' %> • Lulus <%= alumni.tahunLulus %></p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><span class="block text-xs font-bold text-slate-400 uppercase">Prodi / Fakultas</span><span class="text-sm font-semibold text-slate-800"><%= alumni.prodi %></span></div>
+                                <div><span class="block text-xs font-bold text-slate-400 uppercase">Pekerjaan</span><span class="text-sm font-semibold text-slate-800"><%= alumni.jenisPekerjaan || 'Belum Diketahui' %></span></div>
+                            </div>
+                            <div class="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                                <span class="block text-xs font-bold text-slate-400 uppercase mb-1">Current Job Path</span>
+                                <span class="text-sm text-slate-700 font-medium">Tempat: <%= alumni.tempatKerja || '-' %><br>Posisi: <%= alumni.posisi || '-' %></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VS DIVIDER -->
+                    <div class="hidden xl:flex items-center justify-center -mx-4 z-10 w-8">
+                        <div class="bg-indigo-600 text-white font-black text-xs px-2 py-1 rounded-full shadow-lg border-2 border-white ring-2 ring-indigo-100">VS</div>
+                    </div>
+
+                    <!-- SCRAPED DATA (Candidate Match) -->
+                    <div class="flex-1 p-6 sm:p-8 bg-white relative">
+                        <div class="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                            <svg class="w-24 h-24 text-indigo-500" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                        </div>
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-sm font-black tracking-widest text-indigo-600 uppercase">Incoming Scraped Match</h3>
+                            <span class="px-2.5 py-1 text-xs font-bold bg-amber-100 text-amber-700 rounded-md border border-amber-200 pulse-amber">Awaiting Action</span>
+                        </div>
+
+                        <!-- Match Analysis -->
+                        <% 
+                           // Dummy Analysis for UI Demonstration
+                           const matchScore = alumni.confidenceScore || Math.floor(Math.random() * (85 - 45 + 1) + 45); 
+                           const isHigh = matchScore >= 70;
+                        %>
+                        <div class="flex items-center mb-6">
+                            <div class="flex-shrink-0 h-16 w-16 relative">
+                                <!-- Circular progress -->
+                                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                    <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                    <path class="<%= isHigh ? 'text-emerald-500' : 'text-amber-500' %>" stroke-dasharray="<%= matchScore %>, 100" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-sm font-black text-slate-800"><%= matchScore %>%</span>
+                                </div>
+                            </div>
+                            <div class="ml-4 flex-1">
+                                <h4 class="text-lg font-bold text-slate-800 font-outfit mb-1">Algorithmic Confidence</h4>
+                                <div class="flex gap-2">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Name: Match</span>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Edu: Partial</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scraped Data Context -->
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl mb-6 relative">
+                            <div class="mb-3 flex gap-2 overflow-x-auto pb-1">
+                                <a href="https://linkedin.com" target="_blank" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100 flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg> Source URL
+                                </a>
+                                <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded">Scraped: Today, 08:30 AM</span>
+                            </div>
+                            <div class="text-sm text-slate-700 leading-relaxed font-medium">
+                                "Found continuous employment record aligning with graduation year (<%= alumni.tahunLulus %>). Currently listed as <strong class="text-slate-900 bg-emerald-100 px-1 rounded">Senior Staff at Bank BCA</strong> in Jakarta, matching the timeline."
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex gap-3">
+                            <button class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-all shadow-md shadow-emerald-500/20 active:scale-95" onclick="verifyRecord('<%= alumni.id %>', true)">
+                                Verify & Merge Log
+                            </button>
+                            <button class="flex-1 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-sm transition-all active:scale-95" onclick="verifyRecord('<%= alumni.id %>', false)">
+                                Reject as False Pos.
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    <% } %>
+</div>
+
+<script>
+    function verifyRecord(id, isApproved) {
+        // Implement verification logic simulation
+        if(confirm(`Are you sure you want to ${isApproved ? 'approve and merge' : 'reject'} this data profile? Original data safety constraints apply.`)) {
+            window.location.href = `/pipeline/resolve/${id}?action=${isApproved ? 'approve' : 'reject'}`;
+        }
+    }
+</script>
+
+<style>
+    .pulse-amber {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+        animation: pulseA 2s infinite;
+    }
+    @keyframes pulseA {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+    }
+</style>
+
+<%- include('partials/footer') %>

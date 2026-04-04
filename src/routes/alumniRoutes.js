@@ -17,5 +17,7 @@ router.get('/edit/:id', requireLogin, alumniController.formEdit);
 router.post('/edit/:id', requireLogin, alumniController.edit);
 router.get('/delete/:id', requireLogin, alumniController.delete);
 router.get('/export', requireLogin, alumniController.exportExcel);
+router.get('/pipeline', requireLogin, alumniController.getPipeline);
+router.get('/pipeline/resolve/:id', requireLogin, alumniController.resolvePipeline);
 
 module.exports = router;

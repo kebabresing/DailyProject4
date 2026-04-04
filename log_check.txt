@@ -1,0 +1,4 @@
+b8467b4 fix: SQLite schema migration, error handling, bug fixes & UI enhancements
+8adebe0 chore: trigger redeploy with Supabase env vars
+d43767f feat: Alumni Tracker - sistem pelacakan alumni UMM dengan bot simulasi dan dashboard statistik
+6a14b82 first commit

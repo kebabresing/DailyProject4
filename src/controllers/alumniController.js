@@ -104,3 +104,35 @@ exports.exportExcel = async (req, res) => {
   res.attachment('Data_Alumni_DP4_Report.xlsx');
   res.status(200).send(buffer);
 };
+
+exports.getPipeline = async (req, res) => {
+  const fullList = await Alumni.getAll();
+  // Simulate active staging pipeline using unverified records
+  const pendingAlumni = fullList.filter(a => a.status === 'Perlu Verifikasi Manual' || a.confidenceScore < 70 && a.status !== 'Belum Ditemukan di Sumber Publik');
+  
+  res.render('pipeline', { 
+    title: 'Data Scraping & Verification Pipeline', 
+    pendingAlumni
+  });
+};
+
+exports.resolvePipeline = async (req, res) => {
+  const { id } = req.params;
+  const { action } = req.query; // 'approve' or 'reject'
+  
+  const alumni = await Alumni.getById(id);
+  if (!alumni) return res.redirect('/pipeline');
+
+  if (action === 'approve') {
+    alumni.status = 'Teridentifikasi dari Sumber Publik';
+    if(alumni.confidenceScore < 70) alumni.confidenceScore = 95; // Boost score due to manual verification
+    alumni.jejak = '[VERIFIED] ' + alumni.jejak;
+  } else if (action === 'reject') {
+    alumni.status = 'Belum Ditemukan di Sumber Publik';
+    alumni.confidenceScore = 0;
+    alumni.jejak = '[REJECTED - False Positive Match] Removed noisy scraped data.';
+  }
+
+  await Alumni.update(id, alumni);
+  res.redirect('/pipeline');
+};

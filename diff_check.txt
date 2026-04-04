@@ -1,0 +1,894 @@
+diff --git a/README.md b/README.md
+index fd78b31..7a003ec 100644
+--- a/README.md
++++ b/README.md
+@@ -1,125 +1,124 @@
+-# 🎓 Alumni Tracker - Daily Project 3
++# 🎓 Alumni Tracker - Daily Project 4
+ 
+ **Akhmad Zamri Ardani | 202310370311406**  
+ **Rekayasa Kebutuhan A – Universitas Muhammadiyah Malang**
+ 
+ ![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
+ ![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+-![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
++![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+ ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+ 
+-> **Sistem Informasi Pelacakan Profil Publik Alumni Berbasis Web**
++> **Sistem Informasi Manajemen & Pelacakan Profil Publik Alumni Berbasis Web Terintegrasi Cloud**
+ > 
+-> *Proyek ini dikembangkan untuk merealisasikan **Daily Project 2** (Pseudocode & Usecase Diagram) menjadi bentuk Prototype Antarmuka Web Interaktif.*
++> *Proyek ini dikembangkan untuk merealisasikan **Daily Project 4** dengan menambahkan manajemen data ekstensif (Sosial Media, Informasi Pekerjaan, dan Kontak Lengkap) serta integrasi Cloud Relational Database menggunakan Supabase dan Sistem Kredensial Login.*
+ ---
+ 
+ ## 📖 Deskripsi Sistem
+ 
+-**Alumni Tracker** adalah prototype sistem informasi berbasis web yang dirancang untuk membantu admin institusi/kampus dalam melacak dan mengelola data jejak karir alumni di internet secara terpusat. 
++**Alumni Tracker** adalah prototype sistem informasi berbasis web yang dirancang untuk membantu admin institusi/kampus dalam melacak dan mengelola data jejak karir alumni secara detail. 
+ 
+-Sistem ini mensimulasikan kemampuan pencarian profil secara otomatis dari sumber-sumber publik yang sah (seperti *LinkedIn*, *Google Scholar*, *ResearchGate*, dan *Situs Web Perusahaan*) seperti yang dituangkan pada rancangan logika **Modul 1 s/d Modul 10**.
++Sistem ini dikembangkan dari versi sebelumnya dengan dukungan perluasan 11 titik data (*data points*) sesuai perancangan *Daily Project 4*. Semua data pada sistem dilindungi, tidak bersifat publik, dan digunakan **hanya untuk kepentingan pembelajaran**.
+ 
+ ### Target Pengguna (Sesuai Use Case)
+-1. **Admin / HRD Institusi:** Bertugas meninjau hasil pencarian bot otomatis, melakukan validasi manual (CRUD), serta meninjau persentase validitas temuan skor kecocokan profil alumni.
+-2. **Sistem Scheduler (Simulasi Bot):** Algoritma latar belakang yang menyodorkan kandidat data baru ke database master berdasarkan probabilitas dan *Confidence Score*.
++1. **Admin / HRD Institusi:** Bertugas login dengan akses rahasia, meninjau hasil pencarian bot otomatis, serta melakukan pemutakhiran manual terhadap profil karir alumni.
+ 
+ ---
+ 
+-## ✨ Fitur Utama (Core Features)
+-
+-1. 🗄️ **Manajemen Database Master (CRUD)**
+-   * Menambahkan, mengedit, melihat, dan menghapus data profil target alumni dengan mudah melalui antarmuka tabel bersih (*clean code*).
+-2. 🤖 **Simulasi Bot Pelacak (Automated Scheduler)**
+-   * Fitur interaktif **Satu Klik** yang memicu *mocking API* seolah sistem sedang mengais (scraping) identitas baru dari internet, melakukan langkah Modul Disambiguasi untuk menghindari redudansi, dan mendorongnya dangan label Confidence Score ke *Data Master*.
+-3. 📊 **Dashboard & Laporan Statistik Agregat**
+-   * Panel visual (Doughnut Chart) yang mengelompokkan mahasiswa berdasarkan status pelacakan: *"Teridentifikasi"*, *"Perlu Verifikasi"*, atau *"Belum Ditemukan"*.
+-4. 📱 **Responsive & Mobile Friendly**
+-   * Layout telah disesuaikan dengan proporsi HP atau Tablet menggunakan *TailwindCSS utility class*, lengkap dengan form interaktif serta *Sticky Header*.
++## ✨ Fitur Utama (Core Features DP4 Updates)
++
++1. 🗄️ **Manajemen Profil Ekstensif (11 Entitas Baru)**
++   * **Kontak Pribadi**: Terintegrasi pengelolaan data *Email* dan *No. HP/WhatsApp*.
++   * **Sosial Media**: Manajemen tersentrasiliasi *LinkedIn*, *Instagram*, *Facebook*, dan *TikTok*.
++   * **Manajemen Karir**: Pelacakan komprehensif atas *Tempat Kerja*, *Posisi/Jabatan*, *Alamat Tempat Bekerja*, tautan *Sosmed Kantor*.
++   * **Klasifikasi Pekerjaan**: Drop-down terstandarisasi untuk klasifikasi *(PNS, Swasta, Wirausaha, dll)*.
++2. 🔐 **Sistem Autentikasi Keamanan (Admin Panel)**
++   * Seluruh sistem dan route manajemen data kini diproteksi (*Protected Routes*) menggunakan mekanisme `express-session` dan *hashing password* via `bcryptjs`.
++3. ☁️ **Integrasi Cloud Database Ter-Desentralisasi (Supabase)**
++   * Ber-migrasi dari standar *Local File Storage* menuju *PostgreSQL Cloud Management* melalui inisiasi **Supabase**. Memastikan ketersediaan *Database Master* tanpa risiko kehilangan data saat proses deployment ke **Vercel**.
++4. 🤖 **Simulasi Bot Pelacak Lanjutan (Automated Scheduler)**
++   * Fitur interaktif *Satu Klik* yang secara realistis mensimulasikan pencarian *(mocking API)* dan pendataan kandidat baru.
++5. 📱 **Mobile Responsive dengan Interactive Detail Modal**
++   * Pengecekan data detail disajikan dengan elegan melalui *Pop-Up Detail Modal* ter-animasi (glassmorphism/blur effect) cukup dengan mengklik baris data, dengan tetap mempertahankan proporsi layar *mobile HTML responsive*.
+ 
+ ---
+ 
+ ## 🛠️ Teknologi yang Digunakan
+ 
+-Proyek ini dibangun menggunakan *stack* teknologi yang kokoh, cepat, umum dipakai di perkuliahan, dan minim konfigurasi kompleks:
+-
+-1. **Frontend:** EJS (Embedded Javascript Templates) + HTML5 + [TailwindCSS (CDN)](https://tailwindcss.com/) + Chart.js
+-   * *Alasan:* EJS sangat dinamis dalam membongkar array data dari backend. Sementara itu, Tailwind CSS via CDN sangat mempercepat *styling* modern, bersih, tanpa butuh *pipeline build* seperti framework besar lainnya layaknya React.
++1. **Frontend:** EJS (Embedded Javascript Templates) + HTML5 + [TailwindCSS (CDN)](https://tailwindcss.com/)
+ 2. **Backend:** Node.js dipadukan dengan *Framework* Express.js.
+-   * *Alasan:* Standard industri untuk *backend asynchronus*, memiliki performa routing sangat tinggi, dan sintaks Javascript yang konsisten dari Front-End ke Back-End.
+-3. **Database:** SQLite3 (Persisten Relasional)
+-   * *Alasan:* Database file lokal yang sesungguhnya (bukan lagi sekadar *Array Memory* lokal). Ini membuktikan bahwa aplikasi menyimpan data secara persisten dan bisa berinteraksi penuh menggunakan model *Asynchronous Promises*.
++3. **Database:** Supabase (Relasional PostgreSQL Cloud Platform)
+ 
+ ---
+ 
+-## 📂 Struktur Project (MVC Architecture)
++## 📂 Struktur Project 
+ 
+ Menerapkan pola desain *Model-View-Controller* (MVC) untuk kemudahan *maintenance*:
+ 
+ ```text
+-📁 Daily Project 3/
++📁 Daily Project 4/
+ ├── 📁 src/
+ │   ├── 📁 config/
+-│   │   └── database.js         # Konfigurasi & Inisialisasi SQLite3 Database
++│   │   ├── auth.js             # Logic Hashing Account & Keamanan
++│   │   └── database.js         # Abstraksi Mapper & Koneksi Supabase PostgresSQL
+ │   ├── 📁 controllers/
+-│   │   └── alumniController.js # Logika bisnis (menangani request & kirim view)
++│   │   ├── adminController.js  # Mengelola Sesi, Login, Request Middleware
++│   │   └── alumniController.js # Logika bisnis operasional CRUD
+ │   ├── 📁 models/
+-│   │   └── alumniModel.js      # Struktur query & abstraksi transaksi database
++│   │   └── alumniModel.js      # Struktur pemanggil fungsi dari abstraction DB
+ │   └── 📁 routes/
+-│       └── alumniRoutes.js     # Definisi alur rute URL web
++│       └── alumniRoutes.js     # Definisi alur rute URL Protected Access
+ ├── 📁 views/
+-│   ├── 📁 partials/
+-│   │   ├── header.ejs          # Komponen Header web & Navigasi
+-│   │   └── footer.ejs          # Komponen Footer web
+-│   ├── index.ejs               # Halaman utama (Tabel Web Master)
+-│   ├── form.ejs                # Halaman Form Input/Edit Alumni
+-│   └── laporan.ejs             # Halaman Laporan Agregasi (Chart.js)
+-├── .gitignore
++│   ├── 📁 partials/            # Komponen Header, Footer, & Navbar
++│   ├── index.ejs               # Halaman utama (Tabel Web Master) & Detail Modal
++│   ├── form.ejs                # Halaman Form Dinamis (Input Kontak, Sosial Media, & Pekerjaan Lengkap)
++│   ├── login.ejs               # Antarmuka Sistem Autentikasi
++│   └── laporan.ejs             # Halaman Laporan & Statistik
++├── .env                        # Variabel Supabase URL & Secrets
+ ├── package.json
+-├── index.js                    # Entry point server Express.js
+-└── README.md                   # Dokumentasi teknis
++├── index.js                    # Entry point server Web Server Node.js
++└── README.md                   # Dokumentasi teknis terperinci
+ ```
+ 
+ ---
+ 
+-## 🚀 Panduan Menjalankan Web Secara Lokal (Running Locally)
+-
+-Jika Anda ingin mencoba menjalankan web ini di komputer lokal Anda, ikuti langkah berikut:
+-
+-### Prasyarat
+-- Telah meng-install [Node.js](https://nodejs.org/en/) di komputer Anda (Minimal versi 14x).
++## 🚀 Panduan Menjalankan Web Secara Lokal
+ 
+ ### Cara Instalasi & Menjalankan:
+ 
+ 1. **Unduh / Clone Repositori Ini.**
+-2. **Buka Terminal / Command Prompt** dan arahkan ke dalam folder proyek (`cd Daily Project 3`).
++2. **Buka Terminal / Command Prompt** dan arahkan ke dalam folder proyek (`cd Daily Project 4`).
+ 3. **Install Dependensi Penting:**
+-   Jalankan perintah ini untuk mengunduh modul *Express*, *EJS*, *SQLite*, dan *SQLite3*:
+    ```bash
+    npm install
+    ```
+-4. **Jalankan Server Eksekusi:**
++4. **Siapkan File Konfigurasi Rahasia (`.env`):**
++   Buat atau sesuaikan file bernama `.env` di folder *root* dan isi propertinya dengan URL serta API KEY Supabase anda:
++   ```properties
++   SUPABASE_URL=YOUR_SUPABASE_PROJECT_URL
++   SUPABASE_KEY=YOUR_SUPABASE_ANON_KEY
++   SESSION_SECRET=pilih_kalimat_rahasia_bebas
++   NODE_ENV=development
++   ```
++5. **Jalankan Server Eksekusi:**
+    ```bash
+-   npm run start
++   npm start
+    ```
+-5. **Buka Browser Anda** lalu akses alamat lokal:
++6. **Buka Browser Anda** lalu akses alamat lokal:
+    ```text
+    http://localhost:3000
+    ```
+-   > **Catatan Database:** Pada saat dijalankan untuk *pertama kalinya*, sistem SQLite akan secara otomatis men-*generate* file relasional `database.sqlite` dan menyuntikkan (Seed) 15 data uji coba *(Dummy)* di dalamnya agar tabel Dashboard tidak kosong.
+-
+ ---
+ 
+-## 🧪 Pengujian Sistem (Aspek Kualitas Kinerja)
++## 🧪 Pengujian Sistem (Aspek Kualitas Kinerja Baru)
+ 
+-Pengujian Prototipe web aplikasi ini dilakukan berdasarkan spesifikasi kualitas perancangan sistem (*Software Quality Assurance*) pada **Daily Project 2**. Berikut adalah hasil pengujiannya:
++Berikut adalah pengujian perancangan spesifikasi sistem terbaru di DP4:
+ 
+ | No | Aspek Kualitas (Standar ISO 25010) | Skenario Pengujian (Test Case) | Hasil yang Diharapkan | Status / Kesimpulan |
+ |:---|:---|:---|:---|:---|
+-| 1 | **Functional Suitability** (Fungsionalitas) | Menambahkan data Master Alumni baru melalui Form. | Data baru berhasil masuk ke dalam database SQLite dan tertampil urut di tabel Dashboard utama tanpa *error*. | ✅ **Lulus / Sesuai** |
+-| 2 | **Functional Suitability** (Fungsionalitas) | Menekan tombol "▶ Simulasi Bot Pelacak". | Sistem berhasil mengeksekusi Modul *Scheduler* & memvalidasi *Confidence Score* lalu memasukkan kandidat baru ke dalam tabel tanpa duplikasi data lama. | ✅ **Lulus / Sesuai** |
+-| 3 | **Usability** (Kebergunaan) | Mengakses web menggunakan *Smartphone* (Layar Mobile). | Tabel dapat digulir secara horizontal (Overflow-X) dan form isian otomatis beradaptasi menjadi 1 lajur (*Responsive Grid*). Tombol tidak tumpang tindih. | ✅ **Lulus / Sesuai** |
+-| 4 | **Usability** (Kebergunaan) | Menghapus salah satu data. | Sistem tidak langsung menghapus, melainkan memunculkan *Modal Pop-Up Box* konfirmasi peringatan agar admin tidak salah pencet. | ✅ **Lulus / Sesuai** |
+-| 5 | **Reliability** (Keandalan) | Server dijalankan ulang (*Restart* / *Stop node* / *Start node*). | Data yang telah ter-input (*Simulasi / Form Manual*) tetap bertahan dan tidak hilang meskipun server dimatikan, dibuktikan berkat *persistent storage* dari SQLite3. | ✅ **Lulus / Sesuai** |
+-| 6 | **Performance Efficiency** (Kinerja Bawaan) | Memuat halaman "Laporan Statistik" komprehensif. | Halaman laporan (meliputi pengkalkulasian agregat persentase) dan *Doughnut Chart* termuat cepat dalam hitungan sekejab (<1 detik). | ✅ **Lulus / Sesuai** |
++| 1 | **Security** (Keamanan Data) | Mencoba akses Rute URL `/data` sebelum melakukan Login. | Sistem secara ketat menolak pengaksesan dan me- *redirect* otomatis ke halaman URL Login. | ✅ **Lulus / Sesuai** |
++| 2 | **Security** (Keamanan Data) | Melakukan Bypass Password dari Database Backend. | Kombinasi karakter password terlindungi enkripsi `bcrypt` yang telah di *salt*. Peretasan sulit. | ✅ **Lulus / Sesuai** |
++| 3 | **Functional Suitability** (Fungsionalitas) | Melakukan CRUD 11 data *(Sosmed, Jobs, dsb)* pada form input Alumni Baru. | Semua Field Map data dapat memetakan *camelCase* backend NodeJS tepat pada kolom *Snake_Case* Database Supabase. | ✅ **Lulus / Sesuai** |
++| 4 | **Usability** (Kebergunaan) | Mengecek kelengkapan data *(Email dsb)* pada ratusan data. | Modal Popup memfasilitasi penayangan seluruh detail 18 kolom secara instan tanpa perlu menuju tab/halaman baru. | ✅ **Lulus / Sesuai** |
++| 5 | **Reliability** (Keandalan) | Mamasukkan *Dummy Bot Generate* / Modul Simulator ke environment Web Publik (*Vercel*). | Tidak terjadi intervensi *filesystem readonly* dan penambahan simulasi aman menyempil di Cloud Database Supabase milik publik. | ✅ **Lulus / Sesuai** |
+ 
+ ---
+diff --git a/delete-dummy.js b/delete-dummy.js
+deleted file mode 100644
+index a317f1a..0000000
+--- a/delete-dummy.js
++++ /dev/null
+@@ -1,29 +0,0 @@
+-require('dotenv').config();
+-const { createClient } = require('@supabase/supabase-js');
+-
+-const supabaseUrl = process.env.SUPABASE_URL;
+-const supabaseKey = process.env.SUPABASE_KEY;
+-
+-if (!supabaseUrl || !supabaseKey) {
+-  console.log("Supabase credentials missing from .env");
+-  process.exit(1);
+-}
+-
+-const supabase = createClient(supabaseUrl, supabaseKey);
+-
+-async function cleanDummyData() {
+-  console.log("Cleaning dummy bot data from Supabase...");
+-  // All bot generated data has '(Bot)' in the 'jejak' field.
+-  const { data, error } = await supabase
+-    .from('alumni')
+-    .delete()
+-    .like('jejak', '%(Bot)%');
+-
+-  if (error) {
+-    console.error("Error deleting data:", error);
+-  } else {
+-    console.log("Successfully deleted dummy data!");
+-  }
+-}
+-
+-cleanDummyData();
+diff --git a/gitlog.txt b/gitlog.txt
+deleted file mode 100644
+index 49f55bc..0000000
+Binary files a/gitlog.txt and /dev/null differ
+diff --git a/hash.txt b/hash.txt
+deleted file mode 100644
+index 44b2020..0000000
+--- a/hash.txt
++++ /dev/null
+@@ -1 +0,0 @@
+-$2b$10$m6zldLCXzuQ81cQ7azWYGeHyYszX0HpQoSvmB.605cCHLW4ajeaJa
+\ No newline at end of file
+diff --git a/hash_output.txt b/hash_output.txt
+deleted file mode 100644
+index 6638306..0000000
+--- a/hash_output.txt
++++ /dev/null
+@@ -1 +0,0 @@
+-$2b$12$jPBrk6QZSjLbkTs/3v1WRuba.sWAVnfddCyNvzzfA5cTgkCl0h.ki
+\ No newline at end of file
+diff --git a/package-lock.json b/package-lock.json
+index db87c62..b777738 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -1,11 +1,11 @@
+ {
+-  "name": "daily-project-3",
++  "name": "daily-project-4",
+   "version": "1.0.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+-      "name": "daily-project-3",
++      "name": "daily-project-4",
+       "version": "1.0.0",
+       "license": "ISC",
+       "dependencies": {
+diff --git a/package.json b/package.json
+index a6d11ce..8339177 100644
+--- a/package.json
++++ b/package.json
+@@ -1,12 +1,11 @@
+ {
+-  "name": "daily-project-3",
++  "name": "daily-project-4",
+   "version": "1.0.0",
+   "description": "",
+   "main": "index.js",
+   "scripts": {
+     "test": "echo \"Error: no test specified\" && exit 1",
+-    "start": "node index.js",
+-    "dev": "node index.js"
++    "start": "node index.js"
+   },
+   "keywords": [],
+   "author": "",
+@@ -24,4 +23,4 @@
+     "sqlite3": "^6.0.1",
+     "xlsx": "^0.18.5"
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/src/config/database.js b/src/config/database.js
+index 3fe7eb1..f8b6d61 100644
+--- a/src/config/database.js
++++ b/src/config/database.js
+@@ -75,128 +75,40 @@ async function createSQLiteDB() {
+     driver: sqlite3.Database
+   });
+ 
+-  // Buat tabel dengan semua kolom terbaru
+   await dbConfig.exec(`
+     CREATE TABLE IF NOT EXISTS alumni (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+-      namaLengkap TEXT NOT NULL,
+-      nim TEXT,
+-      prodi TEXT NOT NULL,
+-      fakultas TEXT,
+-      tahunLulus INTEGER,
+-      kampus TEXT,
+-      status TEXT,
+-      confidenceScore INTEGER DEFAULT 0,
+-      jejak TEXT,
+-      email TEXT,
+-      noHp TEXT,
+-      linkedin TEXT,
+-      instagram TEXT,
+-      facebook TEXT,
+-      tiktok TEXT,
+-      tempatKerja TEXT,
+-      posisi TEXT,
+-      jenisPekerjaan TEXT,
+-      alamatKerja TEXT,
+-      sosmedTempatKerja TEXT
++      namaLengkap TEXT, prodi TEXT, tahunLulus INTEGER,
++      kampus TEXT, status TEXT, confidenceScore INTEGER, jejak TEXT
+     )
+   `);
+ 
+-  // Migrasi: tambah kolom baru jika belum ada (untuk database lama)
+-  const newColumns = [
+-    'nim TEXT', 'fakultas TEXT', 'email TEXT', 'noHp TEXT',
+-    'linkedin TEXT', 'instagram TEXT', 'facebook TEXT', 'tiktok TEXT',
+-    'tempatKerja TEXT', 'posisi TEXT', 'jenisPekerjaan TEXT',
+-    'alamatKerja TEXT', 'sosmedTempatKerja TEXT'
+-  ];
+-  for (const col of newColumns) {
+-    const colName = col.split(' ')[0];
+-    try { await dbConfig.exec(`ALTER TABLE alumni ADD COLUMN ${col}`); } catch(e) { /* kolom sudah ada */ }
+-  }
+-
+   const countResult = await dbConfig.get('SELECT COUNT(*) AS count FROM alumni');
+-  if (countResult && countResult.count === 0 && fullSeedData.length > 0) {
+-    const stmt = await dbConfig.prepare(
+-      `INSERT INTO alumni (namaLengkap, nim, prodi, fakultas, tahunLulus, kampus, status, confidenceScore, jejak,
+-        email, noHp, linkedin, instagram, facebook, tiktok, tempatKerja, posisi, jenisPekerjaan, alamatKerja, sosmedTempatKerja)
+-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+-    );
++  if (countResult && countResult.count === 0) {
++    const trx = await dbConfig.prepare('INSERT INTO alumni (namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak) VALUES (?, ?, ?, ?, ?, ?, ?)');
+     for (const d of fullSeedData) {
+-      await stmt.run(
+-        d.namaLengkap, d.nim||null, d.prodi, d.fakultas||null, d.tahunLulus, d.kampus,
+-        d.status, d.confidenceScore, d.jejak,
+-        d.email||null, d.noHp||null, d.linkedin||null, d.instagram||null,
+-        d.facebook||null, d.tiktok||null, d.tempatKerja||null, d.posisi||null,
+-        d.jenisPekerjaan||null, d.alamatKerja||null, d.sosmedTempatKerja||null
+-      );
++      await trx.run(d.namaLengkap, d.prodi, d.tahunLulus, d.kampus, d.status, d.confidenceScore, d.jejak);
+     }
+-    await stmt.finalize();
++    await trx.finalize();
+   }
+ 
+   return {
+     getAlumni: async (searchQuery = '') => {
+       if (searchQuery) {
+         const q = `%${searchQuery}%`;
+-        return await dbConfig.all(
+-          `SELECT * FROM alumni WHERE namaLengkap LIKE ? OR nim LIKE ? OR prodi LIKE ?
+-           OR fakultas LIKE ? OR kampus LIKE ? OR status LIKE ? ORDER BY id DESC`,
+-          [q, q, q, q, q, q]
+-        );
++        return await dbConfig.all('SELECT * FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR kampus LIKE ? OR status LIKE ? ORDER BY id DESC', [q, q, q, q]);
+       }
+       return await dbConfig.all('SELECT * FROM alumni ORDER BY id DESC');
+     },
+-    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 50) => {
+-      const offset = (page - 1) * limit;
+-      if (searchQuery) {
+-        const q = `%${searchQuery}%`;
+-        const total = (await dbConfig.get(
+-          `SELECT COUNT(*) AS count FROM alumni WHERE namaLengkap LIKE ? OR nim LIKE ? OR prodi LIKE ? OR fakultas LIKE ? OR kampus LIKE ? OR status LIKE ?`,
+-          [q, q, q, q, q, q]
+-        )).count;
+-        const alumniList = await dbConfig.all(
+-          `SELECT * FROM alumni WHERE namaLengkap LIKE ? OR nim LIKE ? OR prodi LIKE ? OR fakultas LIKE ? OR kampus LIKE ? OR status LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?`,
+-          [q, q, q, q, q, q, limit, offset]
+-        );
+-        return { alumniList, total };
+-      }
+-      const total = (await dbConfig.get('SELECT COUNT(*) AS count FROM alumni')).count;
+-      const alumniList = await dbConfig.all('SELECT * FROM alumni ORDER BY id DESC LIMIT ? OFFSET ?', [limit, offset]);
+-      return { alumniList, total };
+-    },
+     getAlumniById: async (id) => await dbConfig.get('SELECT * FROM alumni WHERE id = ?', [id]),
+     addAlumni: async (alumni) => {
+-      const result = await dbConfig.run(
+-        `INSERT INTO alumni (namaLengkap, nim, prodi, fakultas, tahunLulus, kampus, status, confidenceScore, jejak,
+-          email, noHp, linkedin, instagram, facebook, tiktok, tempatKerja, posisi, jenisPekerjaan, alamatKerja, sosmedTempatKerja)
+-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+-        [
+-          alumni.namaLengkap, alumni.nim||null, alumni.prodi, alumni.fakultas||null,
+-          parseInt(alumni.tahunLulus)||0, alumni.kampus, alumni.status,
+-          parseInt(alumni.confidenceScore)||0, alumni.jejak||null,
+-          alumni.email||null, alumni.noHp||null, alumni.linkedin||null,
+-          alumni.instagram||null, alumni.facebook||null, alumni.tiktok||null,
+-          alumni.tempatKerja||null, alumni.posisi||null, alumni.jenisPekerjaan||null,
+-          alumni.alamatKerja||null, alumni.sosmedTempatKerja||null
+-        ]
+-      );
++      const { namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak } = alumni;
++      const result = await dbConfig.run('INSERT INTO alumni (namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak) VALUES (?, ?, ?, ?, ?, ?, ?)', [namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak]);
+       return { ...alumni, id: result.lastID };
+     },
+     updateAlumni: async (id, updateData) => {
+-      await dbConfig.run(
+-        `UPDATE alumni SET namaLengkap=?, nim=?, prodi=?, fakultas=?, tahunLulus=?, kampus=?, status=?,
+-          confidenceScore=?, jejak=?, email=?, noHp=?, linkedin=?, instagram=?, facebook=?, tiktok=?,
+-          tempatKerja=?, posisi=?, jenisPekerjaan=?, alamatKerja=?, sosmedTempatKerja=? WHERE id=?`,
+-        [
+-          updateData.namaLengkap, updateData.nim||null, updateData.prodi, updateData.fakultas||null,
+-          parseInt(updateData.tahunLulus)||0, updateData.kampus, updateData.status,
+-          parseInt(updateData.confidenceScore)||0, updateData.jejak||null,
+-          updateData.email||null, updateData.noHp||null, updateData.linkedin||null,
+-          updateData.instagram||null, updateData.facebook||null, updateData.tiktok||null,
+-          updateData.tempatKerja||null, updateData.posisi||null, updateData.jenisPekerjaan||null,
+-          updateData.alamatKerja||null, updateData.sosmedTempatKerja||null,
+-          id
+-        ]
+-      );
++      const { namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak } = updateData;
++      await dbConfig.run('UPDATE alumni SET namaLengkap = ?, prodi = ?, tahunLulus = ?, kampus = ?, status = ?, confidenceScore = ?, jejak = ? WHERE id = ?', [namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak, id]);
+       return updateData;
+     },
+     deleteAlumni: async (id) => {
+@@ -242,7 +154,7 @@ async function createSupabaseDB() {
+   const fromRow = (r) => r ? ({
+     id: r.id,
+     namaLengkap: r.nama_lengkap,
+-    nim: r.nim || '',
++    nim: r.nim || '-',
+     prodi: r.prodi,
+     fakultas: r.fakultas || '-',
+     tahunLulus: r.tahun_lulus,
+@@ -287,15 +199,18 @@ async function createSupabaseDB() {
+       return (data || []).map(fromRow);
+     },
+     getAlumniPaginated: async (searchQuery = '', page = 1, limit = 50) => {
++      // Dipakai Data Master — hanya yang Teridentifikasi dari Sumber Publik
+       const from = (page - 1) * limit;
+       const to = from + limit - 1;
+       let q = supabase.from('alumni')
+         .select('*', { count: 'exact' })
++        .eq('status', 'Teridentifikasi dari Sumber Publik')
+         .order('id', { ascending: false })
+         .range(from, to);
+       if (searchQuery) {
+         q = supabase.from('alumni')
+           .select('*', { count: 'exact' })
++          .eq('status', 'Teridentifikasi dari Sumber Publik')
+           .or(`nama_lengkap.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`)
+           .order('id', { ascending: false })
+           .range(from, to);
+diff --git a/src/controllers/alumniController.js b/src/controllers/alumniController.js
+index bb0db92..dc9771f 100644
+--- a/src/controllers/alumniController.js
++++ b/src/controllers/alumniController.js
+@@ -2,30 +2,22 @@ const Alumni = require('../models/alumniModel');
+ const xlsx = require('xlsx');
+ 
+ exports.index = async (req, res) => {
+-  try {
+-    const search = req.query.search || '';
+-    const page = parseInt(req.query.page) || 1;
+-    const limit = 50;
++  const search = req.query.search || '';
++  const page = parseInt(req.query.page) || 1;
++  const limit = 50;
++  const { alumniList, total } = await Alumni.getAllPaginated(search, page, limit);
++  const totalPages = Math.ceil(total / limit);
++  
++  const fullList = await Alumni.getAll();
++  const teridentifikasi = fullList.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length;
++  const bekerja = fullList.filter(a => ['PNS', 'Swasta', 'BUMN'].includes(a.jenisPekerjaan)).length;
++  const wirausaha = fullList.filter(a => ['Wirausaha', 'Freelance'].includes(a.jenisPekerjaan)).length;
+ 
+-    // Fetch paginated list & full stats in parallel for efficiency
+-    const [{ alumniList, total }, fullList] = await Promise.all([
+-      Alumni.getAllPaginated(search, page, limit),
+-      Alumni.getAll()
+-    ]);
+-    const totalPages = Math.ceil(total / limit);
+-    const teridentifikasi = fullList.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length;
+-    const bekerja = fullList.filter(a => ['PNS', 'Swasta', 'BUMN'].includes(a.jenisPekerjaan)).length;
+-    const wirausaha = fullList.filter(a => ['Wirausaha', 'Freelance'].includes(a.jenisPekerjaan)).length;
+-
+-    res.render('index', { 
+-        title: 'Data Master - Sistem Pelacakan Alumni', 
+-        alumniList, search, page, totalPages, total,
+-        stats: { total: fullList.length, teridentifikasi, bekerja, wirausaha }
+-    });
+-  } catch (err) {
+-    console.error('[index]', err);
+-    res.status(500).send('Terjadi kesalahan server. Silakan coba lagi.');
+-  }
++  res.render('index', { 
++      title: 'Data Master - Sistem Pelacakan Alumni', 
++      alumniList, search, page, totalPages, total,
++      stats: { total: fullList.length, teridentifikasi, bekerja, wirausaha }
++  });
+ };
+ 
+ exports.formAdd = (req, res) => {
+@@ -33,113 +25,64 @@ exports.formAdd = (req, res) => {
+ };
+ 
+ exports.add = async (req, res) => {
+-  try {
+-    await Alumni.add(req.body);
+-    res.redirect('/data');
+-  } catch (err) {
+-    console.error('[add]', err);
+-    res.status(500).send('Gagal menambahkan data alumni.');
+-  }
++  await Alumni.add(req.body);
++  res.redirect('/data');
+ };
+ 
+ exports.formEdit = async (req, res) => {
+-  try {
+-    const alumni = await Alumni.getById(req.params.id);
+-    if (!alumni) return res.status(404).render('form', { title: 'Alumni Tidak Ditemukan', isEdit: false, alumni: {} });
+-    res.render('form', { title: 'Edit Data Alumni', isEdit: true, alumni });
+-  } catch (err) {
+-    console.error('[formEdit]', err);
+-    res.status(500).send('Gagal memuat data alumni.');
+-  }
++  const alumni = await Alumni.getById(req.params.id);
++  if (!alumni) return res.status(404).send('Alumni not found');
++  res.render('form', { title: 'Edit Data Alumni', isEdit: true, alumni });
+ };
+ 
+ exports.edit = async (req, res) => {
+-  try {
+-    await Alumni.update(req.params.id, req.body);
+-    res.redirect('/data');
+-  } catch (err) {
+-    console.error('[edit]', err);
+-    res.status(500).send('Gagal memperbarui data alumni.');
+-  }
++  await Alumni.update(req.params.id, req.body);
++  res.redirect('/data');
+ };
+ 
+ exports.delete = async (req, res) => {
+-  try {
+-    await Alumni.delete(req.params.id);
+-    res.redirect('/data');
+-  } catch (err) {
+-    console.error('[delete]', err);
+-    res.status(500).send('Gagal menghapus data alumni.');
+-  }
++  await Alumni.delete(req.params.id);
++  res.redirect('/data');
+ };
+ 
+ 
+ exports.getLaporan = async (req, res) => {
+-  try {
+-    const alumniList = await Alumni.getAll();
+-    
+-    // Calculate basic statistics
+-    const total = alumniList.length;
+-    const teridentifikasi = alumniList.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length;
+-    const perluVerifikasi = alumniList.filter(a => a.status === 'Perlu Verifikasi Manual').length;
+-    const belumDitemukan = alumniList.filter(a => a.status === 'Belum Ditemukan di Sumber Publik').length;
+-
+-    // Statistik jenis pekerjaan untuk chart kedua
+-    const jobStats = {
+-      pns: alumniList.filter(a => a.jenisPekerjaan === 'PNS').length,
+-      swasta: alumniList.filter(a => a.jenisPekerjaan === 'Swasta').length,
+-      wirausaha: alumniList.filter(a => a.jenisPekerjaan === 'Wirausaha').length,
+-      freelance: alumniList.filter(a => a.jenisPekerjaan === 'Freelance').length,
+-      lainnya: alumniList.filter(a => a.jenisPekerjaan === 'Lainnya').length,
+-      tidakDiketahui: alumniList.filter(a => !a.jenisPekerjaan || a.jenisPekerjaan === '').length,
+-    };
++  const alumniList = await Alumni.getAll();
++  
++  // Calculate basic statistics
++  const total = alumniList.length;
++  const teridentifikasi = alumniList.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length;
++  const perluVerifikasi = alumniList.filter(a => a.status === 'Perlu Verifikasi Manual').length;
++  const belumDitemukan = alumniList.filter(a => a.status === 'Belum Ditemukan di Sumber Publik').length;
+ 
+-    res.render('laporan', { 
+-      title: 'Laporan & Statistik Pelacakan', 
+-      stats: { total, teridentifikasi, perluVerifikasi, belumDitemukan },
+-      jobStats
+-    });
+-  } catch (err) {
+-    console.error('[getLaporan]', err);
+-    res.status(500).send('Gagal memuat laporan.');
+-  }
++  res.render('laporan', { 
++    title: 'Laporan & Statistik Pelacakan', 
++    stats: { total, teridentifikasi, perluVerifikasi, belumDitemukan }
++  });
+ };
+ 
+ exports.exportExcel = async (req, res) => {
+-  try {
+-    const alumniList = await Alumni.getAll();
+-    const data = alumniList.map(a => ({
+-      'NIM': a.nim || '-',
+-      'Nama Lengkap': a.namaLengkap,
+-      'Prodi': a.prodi,
+-      'Fakultas': a.fakultas || '-',
+-      'Tahun Lulus': a.tahunLulus,
+-      'Kampus': a.kampus || '-',
+-      'Status Pelacakan': a.status,
+-      'Confidence Score (%)': a.confidenceScore || 0,
+-      'Email': a.email || '-',
+-      'No HP/WA': a.noHp || '-',
+-      'LinkedIn': a.linkedin || '-',
+-      'Instagram': a.instagram || '-',
+-      'Facebook': a.facebook || '-',
+-      'TikTok': a.tiktok || '-',
+-      'Tempat Bekerja': a.tempatKerja || '-',
+-      'Posisi / Jabatan': a.posisi || '-',
+-      'Jenis Pekerjaan': a.jenisPekerjaan || '-',
+-      'Alamat Bekerja': a.alamatKerja || '-',
+-      'Sosmed Tempat Bekerja': a.sosmedTempatKerja || '-',
+-      'Catatan / Jejak': a.jejak || '-',
+-    }));
++  const alumniList = await Alumni.getAll();
++  const data = alumniList.map(a => ({
++    'NIM': a.nim,
++    'Nama Lengkap': a.namaLengkap,
++    'Prodi': a.prodi,
++    'Tahun Lulus': a.tahunLulus,
++    'Status Pelacakan': a.status,
++    'Email': a.email || '-',
++    'No HP/WA': a.noHp || '-',
++    'LinkedIn': a.linkedin || '-',
++    'Tempat Bekerja': a.tempatKerja || '-',
++    'Posisi': a.posisi || '-',
++    'Jenis Pekerjaan': a.jenisPekerjaan || '-',
++    'Alamat Bekerja': a.alamatKerja || '-'
++  }));
+ 
+-    const ws = xlsx.utils.json_to_sheet(data);
+-    const wb = xlsx.utils.book_new();
+-    xlsx.utils.book_append_sheet(wb, ws, "Data_Alumni");
+-    
+-    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+-    res.attachment('Data_Alumni_DP4_Report.xlsx');
+-    res.status(200).send(buffer);
+-  } catch (err) {
+-    console.error('[exportExcel]', err);
+-    res.status(500).send('Gagal mengekspor data.');
+-  }
++  const ws = xlsx.utils.json_to_sheet(data);
++  const wb = xlsx.utils.book_new();
++  xlsx.utils.book_append_sheet(wb, ws, "Data_Alumni");
++  
++  const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
++  res.attachment('Data_Alumni_DP4_Report.xlsx');
++  res.status(200).send(buffer);
+ };
+diff --git a/views/index.ejs b/views/index.ejs
+index dc9328c..3c936e7 100644
+--- a/views/index.ejs
++++ b/views/index.ejs
+@@ -103,7 +103,7 @@
+                         <% }) %>
+                     <% } else { %>
+                         <tr>
+-                            <td colspan="5" class="px-6 py-12 text-center text-slate-500">
++                            <td colspan="4" class="px-6 py-12 text-center text-slate-500">
+                                 <div class="flex flex-col items-center">
+                                     <svg class="h-12 w-12 text-slate-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+@@ -129,15 +129,7 @@
+         <script>
+         const alumniDataMap = {};
+         <% alumniList.forEach(function(a) { %>
+-        alumniDataMap[<%= a.id %>] = <%- JSON.stringify({ 
+-            id: a.id, namaLengkap: a.namaLengkap, nim: a.nim, prodi: a.prodi,
+-            fakultas: a.fakultas, tahunLulus: a.tahunLulus, kampus: a.kampus,
+-            status: a.status, confidenceScore: a.confidenceScore, jejak: a.jejak,
+-            email: a.email, noHp: a.noHp,
+-            linkedin: a.linkedin, instagram: a.instagram, facebook: a.facebook, tiktok: a.tiktok,
+-            tempatKerja: a.tempatKerja, posisi: a.posisi, jenisPekerjaan: a.jenisPekerjaan,
+-            alamatKerja: a.alamatKerja, sosmedTempatKerja: a.sosmedTempatKerja
+-        }) %>;
++        alumniDataMap[<%= a.id %>] = <%- JSON.stringify({ id: a.id, namaLengkap: a.namaLengkap, nim: a.nim, prodi: a.prodi, fakultas: a.fakultas, tahunLulus: a.tahunLulus, kampus: a.kampus, status: a.status, confidenceScore: a.confidenceScore, jejak: a.jejak }) %>;
+         <% }); %>
+         document.querySelector('tbody').addEventListener('click', function(e) {
+             const row = e.target.closest('tr.alumni-row');
+diff --git a/views/laporan.ejs b/views/laporan.ejs
+index 2112777..e13f10c 100644
+--- a/views/laporan.ejs
++++ b/views/laporan.ejs
+@@ -4,7 +4,7 @@
+     <div class="mb-8 border-b border-slate-200/60 pb-5">
+         <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-indigo-800 font-outfit tracking-tight">Dashboard & Laporan Statistik</h1>
+         <p class="mt-2 text-sm text-slate-500 font-medium">
+-            Berikut adalah hasil agregat analitik dari keseluruhan data alumni yang telah tersimpan dalam sistem.
++            Berikut adalah hasil agregat analitik dari data pelacakan alumni publik oleh bot scheduler.
+         </p>
+     </div>
+ 
+@@ -58,120 +58,60 @@
+             </div>
+         </div>
+ 
+-        <!-- Bar Chart: Distribusi Jenis Pekerjaan -->
++        <!-- Info Card Khusus / Legend -->
+         <div class="bg-white/60 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-2xl p-8 ring-1 ring-slate-200/50">
+-            <h3 class="text-xl font-bold text-slate-800 mb-6 font-outfit">Distribusi Jenis Pekerjaan</h3>
+-            <canvas id="jobChart"></canvas>
+-        </div>
+-    </div>
+-
+-    <!-- Info Card / Prioritas HRD -->
+-    <div class="bg-white/60 backdrop-blur-xl border border-white/60 shadow-2xl shadow-indigo-100/50 rounded-2xl p-8 mb-8 ring-1 ring-slate-200/50">
+-        <h3 class="text-xl font-bold text-slate-800 mb-6 w-full text-left font-outfit">Prioritas Penanganan HRD</h3>
+-        <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 shadow-inner rounded-xl p-5 mb-5 ring-1 ring-inset ring-amber-100">
+-            <div class="flex">
+-                <div class="flex-shrink-0">
+-                    <svg class="h-6 w-6 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+-                    </svg>
+-                </div>
+-                <div class="ml-4">
+-                    <p class="text-sm text-amber-800 font-bold leading-relaxed">
+-                        Admin / HRD disarankan fokus memverifikasi <span class="bg-amber-200/60 px-2 py-0.5 rounded text-amber-900"><%= stats.perluVerifikasi %> entri data</span> berstatus "Perlu Verifikasi Manual" di layar Data Master.
+-                    </p>
++            <h3 class="text-xl font-bold text-slate-800 mb-6 w-full text-left font-outfit">Prioritas Penanganan HRD</h3>
++            <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 shadow-inner rounded-xl p-5 mb-5 ring-1 ring-inset ring-amber-100">
++                <div class="flex">
++                    <div class="flex-shrink-0">
++                        <svg class="h-6 w-6 text-amber-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
++                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
++                        </svg>
++                    </div>
++                    <div class="ml-4">
++                        <p class="text-sm text-amber-800 font-bold leading-relaxed">
++                            Admin / HRD disarankan fokus memverifikasi <span class="bg-amber-200/60 px-2 py-0.5 rounded text-amber-900"><%= stats.perluVerifikasi %> entri data</span> berstatus "Perlu Verifikasi Manual" di layar Data Master.
++                        </p>
++                    </div>
+                 </div>
+             </div>
++            <p class="text-slate-600 text-sm/relaxed text-justify font-medium">
++                Sesuai definisi Use Case Diagram "Verifikasi Manual", entitas bersatus kewaspadaan kuning (interval skor 40% - 69%) umumnya timbul akibat kemiripan <i>Identity Signals</i> yang ambigu. Contoh klasiknya: Menemukan profil pekerja di LinkedIn yang memiliki nama sama persis, namun profil yang bersangkutan menolak mencantumkan asal lulusan di riwayat pendidikannya. Sistem kita sangat butuh intervensi & diskresi kebijaksanaan HRD setempat.
++            </p>
+         </div>
+-        <p class="text-slate-600 text-sm/relaxed text-justify font-medium">
+-            Sesuai definisi Use Case Diagram "Verifikasi Manual", entitas bersatus kewaspadaan kuning (interval skor 40% - 69%) umumnya timbul akibat kemiripan <i>Identity Signals</i> yang ambigu. Contoh klasiknya: Menemukan profil pekerja di LinkedIn yang memiliki nama sama persis, namun profil yang bersangkutan menolak mencantumkan asal lulusan di riwayat pendidikannya. Sistem kita sangat butuh intervensi &amp; diskresi kebijaksanaan HRD setempat.
+-        </p>
+     </div>
+ </div>
+ 
+ <!-- Chart JS -->
+ <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+ <script>
+-    // ── Doughnut: Status Pelacakan ─────────────────────────
++    // Inisialisasi Chart dari data EJS 
+     const ctx = document.getElementById('statusChart').getContext('2d');
+-    new Chart(ctx, {
++    const statusChart = new Chart(ctx, {
+         type: 'doughnut',
+         data: {
+             labels: ['Teridentifikasi', 'Perlu Verifikasi', 'Belum Ditemukan'],
+             datasets: [{
+                 data: [<%= stats.teridentifikasi %>, <%= stats.perluVerifikasi %>, <%= stats.belumDitemukan %>],
+                 backgroundColor: [
+-                    'rgba(34, 197, 94, 0.85)',
+-                    'rgba(234, 179, 8, 0.85)',
+-                    'rgba(239, 68, 68, 0.85)'
+-                ],
+-                borderColor: ['rgba(34,197,94,1)', 'rgba(234,179,8,1)', 'rgba(239,68,68,1)'],
+-                borderWidth: 2,
+-                hoverOffset: 8
+-            }]
+-        },
+-        options: {
+-            responsive: true,
+-            animation: { animateScale: true, animateRotate: true },
+-            plugins: {
+-                legend: { position: 'bottom', labels: { padding: 20, font: { family: 'Inter', size: 12 } } },
+-                tooltip: {
+-                    callbacks: {
+-                        label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / (<%= stats.total %> || 1) * 100)}%)`
+-                    }
+-                }
+-            }
+-        }
+-    });
+-
+-    // ── Bar Chart: Distribusi Jenis Pekerjaan ─────────────
+-    const ctx2 = document.getElementById('jobChart').getContext('2d');
+-    new Chart(ctx2, {
+-        type: 'bar',
+-        data: {
+-            labels: ['PNS', 'Swasta', 'Wirausaha', 'Freelance', 'Lainnya', 'Tdk Diketahui'],
+-            datasets: [{
+-                label: 'Jumlah Alumni',
+-                data: [
+-                    <%= jobStats.pns %>,
+-                    <%= jobStats.swasta %>,
+-                    <%= jobStats.wirausaha %>,
+-                    <%= jobStats.freelance %>,
+-                    <%= jobStats.lainnya %>,
+-                    <%= jobStats.tidakDiketahui %>
+-                ],
+-                backgroundColor: [
+-                    'rgba(99, 102, 241, 0.8)',
+-                    'rgba(14, 165, 233, 0.8)',
+-                    'rgba(234, 179, 8, 0.8)',
+-                    'rgba(249, 115, 22, 0.8)',
+-                    'rgba(168, 85, 247, 0.8)',
+-                    'rgba(148, 163, 184, 0.8)'
++                    'rgba(34, 197, 94, 0.8)',   // Green
++                    'rgba(234, 179, 8, 0.8)',    // Yellow
++                    'rgba(239, 68, 68, 0.8)'     // Red
+                 ],
+                 borderColor: [
+-                    'rgba(99,102,241,1)', 'rgba(14,165,233,1)', 'rgba(234,179,8,1)',
+-                    'rgba(249,115,22,1)', 'rgba(168,85,247,1)', 'rgba(148,163,184,1)'
++                    'rgba(34, 197, 94, 1)',   
++                    'rgba(234, 179, 8, 1)',    
++                    'rgba(239, 68, 68, 1)'     
+                 ],
+-                borderWidth: 2,
+-                borderRadius: 8,
+-                borderSkipped: false,
++                borderWidth: 1,
++                hoverOffset: 4
+             }]
+         },
+         options: {
+             responsive: true,
+-            animation: { duration: 800, easing: 'easeOutQuart' },
+             plugins: {
+-                legend: { display: false },
+-                tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y} alumni` } }
+-            },
+-            scales: {
+-                y: {
+-                    beginAtZero: true,
+-                    ticks: { precision: 0, font: { family: 'Inter' } },
+-                    grid: { color: 'rgba(0,0,0,0.05)' }
+-                },
+-                x: {
+-                    ticks: { font: { family: 'Inter', size: 11 } },
+-                    grid: { display: false }
++                legend: {
++                    position: 'bottom',
+                 }
+             }
+         }
+diff --git a/views/partials/header.ejs b/views/partials/header.ejs
+index 0f0b94e..d0a9277 100644
+--- a/views/partials/header.ejs
++++ b/views/partials/header.ejs
+@@ -28,8 +28,8 @@
+                 </div>
+                 <!-- Navigation Links -->
+                 <div class="hidden sm:flex items-center space-x-1">
+-                    <a href="/" id="nav-laporan" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300">Laporan Statistik</a>
+-                    <a href="/data" id="nav-data" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300">Data Master</a>
++                    <a href="/" class="text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300">Laporan Statistik</a>
++                    <a href="/data" class="text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300">Data Master</a>
+                     <% if (user) { %>
+                     <div class="flex items-center gap-3 ml-4 pl-4 border-l border-slate-200">
+                         <div class="text-right">
+@@ -58,18 +58,3 @@
+         </div>
+     </nav>
+     <main class="flex-grow w-full max-w-7xl mx-auto">
+-<script>
+-  (function() {
+-    const path = window.location.pathname;
+-    const navMap = { '/': 'nav-laporan', '/data': 'nav-data' };
+-    const activeId = Object.keys(navMap).find(k => path === k || (k !== '/' && path.startsWith(k)));
+-    const activeEl = document.getElementById(activeId ? navMap[activeId] : null);
+-    document.querySelectorAll('#nav-laporan, #nav-data').forEach(el => {
+-      el.classList.add('text-slate-600', 'hover:text-indigo-600', 'hover:bg-indigo-50/50');
+-    });
+-    if (activeEl) {
+-      activeEl.classList.remove('text-slate-600', 'hover:text-indigo-600', 'hover:bg-indigo-50/50');
+-      activeEl.classList.add('text-indigo-600', 'bg-indigo-50', 'shadow-sm');
+-    }
+-  })();
+-</script>
