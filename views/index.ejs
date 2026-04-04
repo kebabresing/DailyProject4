@@ -129,7 +129,7 @@
         <script>
         const alumniDataMap = {};
         <% alumniList.forEach(function(a) { %>
-        alumniDataMap[<%= a.id %>] = <%- JSON.stringify({ id: a.id, namaLengkap: a.namaLengkap, nim: a.nim, prodi: a.prodi, fakultas: a.fakultas, tahunLulus: a.tahunLulus, kampus: a.kampus, status: a.status, confidenceScore: a.confidenceScore, jejak: a.jejak }) %>;
+        alumniDataMap[<%= a.id %>] = <%- JSON.stringify(a) %>;
         <% }); %>
         document.querySelector('tbody').addEventListener('click', function(e) {
             const row = e.target.closest('tr.alumni-row');
