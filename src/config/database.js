@@ -177,15 +177,21 @@ async function createSupabaseDB() {
   }) : null;
 
   // Seed otomatis HANYA jika tabel benar-benar kosong
-  const { count } = await supabase.from('alumni').select('*', { count: 'exact', head: true });
-  if (count === 0) {
+  const { count, error } = await supabase.from('alumni').select('*', { count: 'exact', head: true });
+  if (error) {
+    console.error(`[DB] Peringatan: Gagal mengecek Supabase (Tabel mungkin belum ada atau URL/Key salah). Error: ${error.message}`);
+  } else if (count === 0) {
     const rows = fullSeedData.map(toRow);
-    for (let i = 0; i < rows.length; i += 100) {
-      await supabase.from('alumni').insert(rows.slice(i, i + 100));
+    if (rows.length > 0) {
+      for (let i = 0; i < rows.length; i += 100) {
+        await supabase.from('alumni').insert(rows.slice(i, i + 100));
+      }
+      console.log(`[DB] Seeded ${rows.length} dummy alumni to Supabase (tabel kosong)`);
+    } else {
+      console.log(`[DB] Data seed kosong, melewatinya.`);
     }
-    console.log(`[DB] Seeded ${rows.length} dummy alumni to Supabase (tabel kosong)`);
   } else {
-    console.log(`[DB] Supabase sudah ada ${count.toLocaleString()} alumni — skip seed`);
+    console.log(`[DB] Supabase sudah ada ${count ? count.toLocaleString() : 0} alumni — skip seed`);
   }
 
   return {
