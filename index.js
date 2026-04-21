@@ -39,6 +39,16 @@ app.use((req, res, next) => {
 app.use('/', alumniRoutes);
 app.use('/', trackerRoutes);
 
+// Global Error Handler for Debugging on Vercel
+app.use((err, req, res, next) => {
+  console.error('[Global Error]', err.stack);
+  res.status(500).send(`
+    <h1>Internal Server Error</h1>
+    <p><b>Message:</b> ${err.message}</p>
+    <pre><b>Stack:</b>\n${err.stack}</pre>
+  `);
+});
+
 // Export app for Vercel, or listen locally
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'production') {
