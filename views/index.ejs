@@ -412,28 +412,34 @@
         if (e.key === 'Escape') { closeDetailModal(); closeDeleteModal(); }
     });
 
-    // ── Toast Notification (bot alert) ────────────
+    // ── Toast Notification ────────────────────────────────────
+    const ALERTS = {
+        'add-success':    { title: 'Data Ditambahkan!',    msg: 'Alumni baru berhasil disimpan ke database.', color: 'emerald' },
+        'edit-success':   { title: 'Data Diperbarui!',     msg: 'Perubahan data alumni berhasil disimpan.', color: 'emerald' },
+        'delete-success': { title: 'Data Dihapus',         msg: 'Data alumni berhasil dihapus dari sistem.', color: 'rose' },
+        'bot-success':    { title: 'Pelacakan Berhasil!',  msg: 'Data alumni baru ditambahkan.', color: 'emerald' },
+        'bot-exist':      { title: 'Pelacakan Selesai',    msg: 'Sistem tidak menemukan sumber baru di publik.', color: 'amber' },
+    };
     window.addEventListener('load', function() {
         const urlParams = new URLSearchParams(window.location.search);
         const alertType = urlParams.get('alert');
-        if (alertType === 'bot-success' || alertType === 'bot-exist') {
-            const toast = document.getElementById('toast-success');
-            if (alertType === 'bot-exist') {
-                document.getElementById('toast-icon-bg').classList.replace('text-emerald-600', 'text-amber-600');
-                document.getElementById('toast-icon-bg').classList.replace('bg-emerald-100/80', 'bg-amber-100/80');
-                document.getElementById('toast-icon-bg').classList.replace('border-emerald-200', 'border-amber-200');
-                document.getElementById('toast-title').textContent = 'Pelacakan Selesai';
-                document.getElementById('toast-message').textContent = 'Sistem tidak menemukan sumber baru di publik.';
-                document.getElementById('toast-icon').innerHTML = '<path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z"/>';
-            }
-            toast.classList.remove('hidden');
-            setTimeout(() => toast.classList.remove('opacity-0'), 100);
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-                setTimeout(() => toast.classList.add('hidden'), 500);
-            }, 5000);
-            window.history.replaceState({}, document.title, '/data');
-        }
+        const cfg = ALERTS[alertType];
+        if (!cfg) return;
+
+        const toast = document.getElementById('toast-success');
+        const iconBg = document.getElementById('toast-icon-bg');
+        const c = cfg.color;
+        iconBg.className = `inline-flex items-center justify-center flex-shrink-0 w-10 h-10 text-${c}-600 bg-${c}-100/80 rounded-xl border border-${c}-200 shadow-sm`;
+        document.getElementById('toast-title').textContent  = cfg.title;
+        document.getElementById('toast-message').textContent = cfg.msg;
+
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.remove('opacity-0'), 100);
+        setTimeout(() => {
+            toast.classList.add('opacity-0');
+            setTimeout(() => toast.classList.add('hidden'), 500);
+        }, 4000);
+        window.history.replaceState({}, document.title, '/data');
     });
 
     // ── Client-Side Quick Live Filter ─────────────
