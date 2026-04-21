@@ -21,14 +21,14 @@ function createMemoryDB() {
         const q = searchQuery.toLowerCase();
         return data.filter(a =>
           a.namaLengkap.toLowerCase().includes(q) ||
-          a.prodi.toLowerCase().includes(q) ||
-          a.kampus.toLowerCase().includes(q) ||
-          a.status.toLowerCase().includes(q)
+          (a.prodi||'').toLowerCase().includes(q) ||
+          (a.status||'').toLowerCase().includes(q)
         ).sort((a, b) => b.id - a.id);
       }
       return [...data].sort((a, b) => b.id - a.id);
     },
-    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 50) => {
+    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100) => {
+      const clampedLimit = Math.min(limit, 100); // enforce max 100
       let filtered = searchQuery
         ? data.filter(a =>
             a.namaLengkap.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -38,7 +38,7 @@ function createMemoryDB() {
         : [...data];
       filtered.sort((a, b) => b.id - a.id);
       const total = filtered.length;
-      const alumniList = filtered.slice((page - 1) * limit, page * limit);
+      const alumniList = filtered.slice((page - 1) * clampedLimit, page * clampedLimit);
       return { alumniList, total };
     },
     getAlumniById: async (id) => {
@@ -59,7 +59,27 @@ function createMemoryDB() {
     deleteAlumni: async (id) => {
       data = data.filter(a => a.id !== parseInt(id));
       return true;
-    }
+    },
+
+    // ── Aggregate queries (no full table scan) ──────────────
+    getStats: async () => ({
+      total:           data.length,
+      teridentifikasi: data.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length,
+      perluVerifikasi: data.filter(a => a.status === 'Perlu Verifikasi Manual').length,
+      belumDitemukan:  data.filter(a => a.status === 'Belum Ditemukan di Sumber Publik').length,
+      bekerja:         data.filter(a => ['PNS','Swasta','BUMN'].includes(a.jenisPekerjaan)).length,
+      wirausaha:       data.filter(a => ['Wirausaha','Freelance'].includes(a.jenisPekerjaan)).length,
+    }),
+    getProdiDistribution: async () => {
+      const m = {};
+      data.forEach(a => { if (a.prodi) m[a.prodi] = (m[a.prodi] || 0) + 1; });
+      return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    },
+    getTahunDistribution: async () => {
+      const m = {};
+      data.forEach(a => { if (a.tahunLulus) m[a.tahunLulus] = (m[a.tahunLulus] || 0) + 1; });
+      return Object.entries(m).sort((a, b) => Number(a[0]) - Number(b[0]));
+    },
   };
 }
 
@@ -92,13 +112,38 @@ async function createSQLiteDB() {
     await trx.finalize();
   }
 
+  // SQLite: tambah indexes untuk performa
+  await dbConfig.exec(`
+    CREATE INDEX IF NOT EXISTS idx_alumni_status ON alumni(status);
+    CREATE INDEX IF NOT EXISTS idx_alumni_prodi  ON alumni(prodi);
+    CREATE INDEX IF NOT EXISTS idx_alumni_tahun  ON alumni(tahunLulus);
+    CREATE INDEX IF NOT EXISTS idx_alumni_nim    ON alumni(namaLengkap);
+  `).catch(() => {}); // ignore jika sudah ada
+
   return {
     getAlumni: async (searchQuery = '') => {
       if (searchQuery) {
         const q = `%${searchQuery}%`;
-        return await dbConfig.all('SELECT * FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR kampus LIKE ? OR status LIKE ? ORDER BY id DESC', [q, q, q, q]);
+        return await dbConfig.all('SELECT * FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR kampus LIKE ? OR status LIKE ? ORDER BY id DESC LIMIT 1000', [q, q, q, q]);
       }
-      return await dbConfig.all('SELECT * FROM alumni ORDER BY id DESC');
+      return await dbConfig.all('SELECT * FROM alumni ORDER BY id DESC LIMIT 1000');
+    },
+    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100) => {
+      const clampedLimit = Math.min(limit, 100); // enforce max 100
+      const offset = (page - 1) * clampedLimit;
+      if (searchQuery) {
+        const q = `%${searchQuery}%`;
+        const [rows, countRow] = await Promise.all([
+          dbConfig.all('SELECT * FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR status LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?', [q, q, q, clampedLimit, offset]),
+          dbConfig.get('SELECT COUNT(*) as count FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR status LIKE ?', [q, q, q]),
+        ]);
+        return { alumniList: rows, total: countRow.count };
+      }
+      const [rows, countRow] = await Promise.all([
+        dbConfig.all('SELECT * FROM alumni ORDER BY id DESC LIMIT ? OFFSET ?', [clampedLimit, offset]),
+        dbConfig.get('SELECT COUNT(*) as count FROM alumni'),
+      ]);
+      return { alumniList: rows, total: countRow.count };
     },
     getAlumniById: async (id) => await dbConfig.get('SELECT * FROM alumni WHERE id = ?', [id]),
     addAlumni: async (alumni) => {
@@ -114,7 +159,41 @@ async function createSQLiteDB() {
     deleteAlumni: async (id) => {
       await dbConfig.run('DELETE FROM alumni WHERE id = ?', [id]);
       return true;
-    }
+    },
+
+    // ── Aggregate queries (single-query, tidak scan semua rows) ──
+    getStats: async () => {
+      const row = await dbConfig.get(`
+        SELECT
+          COUNT(*)                                                              AS total,
+          SUM(CASE WHEN status = 'Teridentifikasi dari Sumber Publik' THEN 1 ELSE 0 END) AS teridentifikasi,
+          SUM(CASE WHEN status = 'Perlu Verifikasi Manual'            THEN 1 ELSE 0 END) AS perluVerifikasi,
+          SUM(CASE WHEN status = 'Belum Ditemukan di Sumber Publik'   THEN 1 ELSE 0 END) AS belumDitemukan,
+          SUM(CASE WHEN jenisPekerjaan IN ('PNS','Swasta','BUMN')      THEN 1 ELSE 0 END) AS bekerja,
+          SUM(CASE WHEN jenisPekerjaan IN ('Wirausaha','Freelance')    THEN 1 ELSE 0 END) AS wirausaha
+        FROM alumni
+      `);
+      return {
+        total:           row.total           || 0,
+        teridentifikasi: row.teridentifikasi || 0,
+        perluVerifikasi: row.perluVerifikasi || 0,
+        belumDitemukan:  row.belumDitemukan  || 0,
+        bekerja:         row.bekerja         || 0,
+        wirausaha:       row.wirausaha       || 0,
+      };
+    },
+    getProdiDistribution: async () => {
+      const rows = await dbConfig.all(
+        `SELECT prodi, COUNT(*) AS count FROM alumni WHERE prodi IS NOT NULL AND prodi != '' GROUP BY prodi ORDER BY count DESC LIMIT 10`
+      );
+      return rows.map(r => [r.prodi, r.count]);
+    },
+    getTahunDistribution: async () => {
+      const rows = await dbConfig.all(
+        `SELECT tahunLulus, COUNT(*) AS count FROM alumni WHERE tahunLulus IS NOT NULL AND tahunLulus > 0 GROUP BY tahunLulus ORDER BY tahunLulus`
+      );
+      return rows.map(r => [String(r.tahunLulus), r.count]);
+    },
   };
 }
 
@@ -195,35 +274,39 @@ async function createSupabaseDB() {
   }
 
   return {
-    getAlumni: async (searchQuery = '') => {
-      // Dipakai laporan statistik — semua data
-      let q = supabase.from('alumni').select('*').order('id', { ascending: false }).limit(1000);
+    // ── Data listing (dengan server-side filtering + range pagination) ────
+    getAlumni: async (searchQuery = '', limit = 500) => {
+      // Dipakai: export excel, tracker scheduler — batasi dengan limit
+      let q = supabase.from('alumni').select('*').order('id', { ascending: false });
       if (searchQuery) {
         q = q.or(`nama_lengkap.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`);
       }
-      const { data } = await q;
+      const { data } = await q.limit(limit);
       return (data || []).map(fromRow);
     },
-    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 50) => {
-      // Dipakai Data Master — hanya yang Teridentifikasi dari Sumber Publik
-      const from = (page - 1) * limit;
-      const to = from + limit - 1;
-      let q = supabase.from('alumni')
-        .select('*', { count: 'exact' })
-        .eq('status', 'Teridentifikasi dari Sumber Publik')
-        .order('id', { ascending: false })
-        .range(from, to);
-      if (searchQuery) {
-        q = supabase.from('alumni')
+
+    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100) => {
+      const clampedLimit = Math.min(limit, 100); // enforce max 100
+      const from = (page - 1) * clampedLimit;
+      const to   = from + clampedLimit - 1;
+
+      // Base query builder (reusable)
+      const buildQuery = (withSearch) => {
+        let q = supabase.from('alumni')
           .select('*', { count: 'exact' })
           .eq('status', 'Teridentifikasi dari Sumber Publik')
-          .or(`nama_lengkap.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`)
           .order('id', { ascending: false })
           .range(from, to);
-      }
-      const { data, count } = await q;
+        if (withSearch) {
+          q = q.or(`nama_lengkap.ilike.%${withSearch}%,prodi.ilike.%${withSearch}%,nim.ilike.%${withSearch}%,fakultas.ilike.%${withSearch}%`);
+        }
+        return q;
+      };
+
+      const { data, count } = await buildQuery(searchQuery || null);
       return { alumniList: (data || []).map(fromRow), total: count || 0 };
     },
+
     getAlumniById: async (id) => {
       const { data } = await supabase.from('alumni').select('*').eq('id', id).single();
       return fromRow(data);
@@ -239,7 +322,57 @@ async function createSupabaseDB() {
     deleteAlumni: async (id) => {
       await supabase.from('alumni').delete().eq('id', id);
       return true;
-    }
+    },
+
+    // ── Aggregate queries (TIDAK load semua rows ke memory) ───────────────
+    // Menggunakan Supabase RPC (1 query) dengan fallback parallel COUNT queries (6 queries)
+
+    getStats: async () => {
+      // Coba RPC dulu (satu query, paling cepat — perlu jalankan supabase_setup.sql)
+      const { data: rpc, error: rpcErr } = await supabase.rpc('get_alumni_stats');
+      if (!rpcErr && rpc) {
+        return {
+          total:           Number(rpc.total)           || 0,
+          teridentifikasi: Number(rpc.teridentifikasi)  || 0,
+          perluVerifikasi: Number(rpc.perluVerifikasi)  || 0,
+          belumDitemukan:  Number(rpc.belumDitemukan)   || 0,
+          bekerja:         Number(rpc.bekerja)          || 0,
+          wirausaha:       Number(rpc.wirausaha)        || 0,
+        };
+      }
+      // Fallback: 6 parallel COUNT queries (masih cepat dengan index)
+      console.warn('[DB] RPC get_alumni_stats tidak tersedia, pakai fallback COUNT queries');
+      const [tot, teri, perlu, belum, bek, wir] = await Promise.all([
+        supabase.from('alumni').select('*', { count: 'exact', head: true }),
+        supabase.from('alumni').select('*', { count: 'exact', head: true }).eq('status', 'Teridentifikasi dari Sumber Publik'),
+        supabase.from('alumni').select('*', { count: 'exact', head: true }).eq('status', 'Perlu Verifikasi Manual'),
+        supabase.from('alumni').select('*', { count: 'exact', head: true }).eq('status', 'Belum Ditemukan di Sumber Publik'),
+        supabase.from('alumni').select('*', { count: 'exact', head: true }).in('jenis_pekerjaan', ['PNS', 'Swasta', 'BUMN']),
+        supabase.from('alumni').select('*', { count: 'exact', head: true }).in('jenis_pekerjaan', ['Wirausaha', 'Freelance']),
+      ]);
+      return {
+        total:           tot.count  || 0,
+        teridentifikasi: teri.count || 0,
+        perluVerifikasi: perlu.count || 0,
+        belumDitemukan:  belum.count || 0,
+        bekerja:         bek.count  || 0,
+        wirausaha:       wir.count  || 0,
+      };
+    },
+
+    getProdiDistribution: async () => {
+      const { data, error } = await supabase.rpc('get_prodi_distribution');
+      if (!error && data) return data.map(r => [r.prodi, Number(r.count)]);
+      console.warn('[DB] RPC get_prodi_distribution tidak tersedia');
+      return [];
+    },
+
+    getTahunDistribution: async () => {
+      const { data, error } = await supabase.rpc('get_tahun_distribution');
+      if (!error && data) return data.map(r => [String(r.tahun_lulus), Number(r.count)]);
+      console.warn('[DB] RPC get_tahun_distribution tidak tersedia');
+      return [];
+    },
   };
 }
 
@@ -264,8 +397,11 @@ async function getDB() {
 }
 
 module.exports = {
-  getAlumni: async (q) => (await getDB()).getAlumni(q),
+  getAlumni: async (q, limit) => (await getDB()).getAlumni(q, limit),
   getAlumniPaginated: async (q, page, limit) => (await getDB()).getAlumniPaginated(q, page, limit),
+  getStats:           async ()  => (await getDB()).getStats(),
+  getProdiDistribution: async () => (await getDB()).getProdiDistribution(),
+  getTahunDistribution: async () => (await getDB()).getTahunDistribution(),
   getAlumniById: async (id) => (await getDB()).getAlumniById(id),
   addAlumni: async (data) => (await getDB()).addAlumni(data),
   updateAlumni: async (id, data) => (await getDB()).updateAlumni(id, data),

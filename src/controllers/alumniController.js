@@ -1,49 +1,17 @@
 const Alumni = require('../models/alumniModel');
-const xlsx = require('xlsx');
+const xlsx   = require('xlsx');
 
-// ── Helper: Hitung statistik dari daftar alumni ───────────────────────────
-// Dijalankan sekali, menghindari duplikasi logika di beberapa controller.
-function computeAlumniStats(list) {
-  const total = list.length;
-  const teridentifikasi = list.filter(a => a.status === 'Teridentifikasi dari Sumber Publik').length;
-  const perluVerifikasi  = list.filter(a => a.status === 'Perlu Verifikasi Manual').length;
-  const belumDitemukan   = list.filter(a => a.status === 'Belum Ditemukan di Sumber Publik').length;
-
-  const bekerja = list.filter(a => {
-    if (['PNS', 'Swasta', 'BUMN'].includes(a.jenisPekerjaan)) return true;
-    if (!a.jenisPekerjaan && a.jejak) {
-      const j = a.jejak.toLowerCase();
-      return j.includes('pt') || j.includes('bank') || j.includes('konsultan') ||
-             j.includes('staff') || j.includes('pns') || j.includes('dinas');
-    }
-    return false;
-  }).length;
-
-  const wirausaha = list.filter(a => {
-    if (['Wirausaha', 'Freelance'].includes(a.jenisPekerjaan)) return true;
-    if (!a.jenisPekerjaan && a.jejak) {
-      const j = a.jejak.toLowerCase();
-      return j.includes('owner') || j.includes('founder') ||
-             j.includes('wirausaha') || j.includes('freelance');
-    }
-    return false;
-  }).length;
-
-  return { total, teridentifikasi, perluVerifikasi, belumDitemukan, bekerja, wirausaha };
-}
-
-// ── Simple in-memory stats cache (TTL: 60 detik) ─────────────────────────
+// ── In-memory stats cache (TTL: 60 detik) ────────────────────────────────
+// getCachedStats memanggil Alumni.getStats() yang menjalankan query agregat
+// di server (COUNT + GROUP BY), bukan fetch semua baris.
 let _statsCache = null;
 let _statsCacheTime = 0;
 const STATS_TTL_MS = 60 * 1000;
 
 async function getCachedStats() {
   const now = Date.now();
-  if (_statsCache && (now - _statsCacheTime) < STATS_TTL_MS) {
-    return _statsCache;
-  }
-  const fullList = await Alumni.getAll();
-  _statsCache = computeAlumniStats(fullList);
+  if (_statsCache && (now - _statsCacheTime) < STATS_TTL_MS) return _statsCache;
+  _statsCache = await Alumni.getStats(); // ← server-side aggregate, bukan getAll()
   _statsCacheTime = now;
   return _statsCache;
 }
@@ -54,13 +22,13 @@ function invalidateStatsCache() {
 }
 
 // ── GET /data — Data Master ───────────────────────────────────────────────
-exports.index = async (req, res) => {
+exports.index = async (req, res, next) => {
   try {
     const search = req.query.search || '';
     const page   = Math.max(1, parseInt(req.query.page) || 1);
-    const limit  = 50;
+    const limit  = 100; // max 100 per halaman
 
-    // Jalankan paginated query + stats dari cache secara paralel
+    // Jalankan paginated query + stats secara paralel
     const [{ alumniList, total }, stats] = await Promise.all([
       Alumni.getAllPaginated(search, page, limit),
       getCachedStats(),
@@ -131,37 +99,18 @@ exports.delete = async (req, res, next) => {
 };
 
 // ── GET / — Laporan & Statistik ───────────────────────────────────────────
-// [PERF-1] Gunakan stats cache — tidak perlu fetch semua baris lagi
 exports.getLaporan = async (req, res, next) => {
   try {
-    const [stats, fullList] = await Promise.all([
-      getCachedStats(),
-      Alumni.getAll(),
+    // Semua query berjalan paralel di server — tidak ada getAll()
+    const [stats, prodiChart, tahunChart] = await Promise.all([
+      getCachedStats(),                  // aggregate COUNT (sangat cepat)
+      Alumni.getProdiDistribution(),     // GROUP BY prodi LIMIT 10
+      Alumni.getTahunDistribution(),     // GROUP BY tahun_lulus
     ]);
-
-    // Distribusi per Prodi (untuk bar chart)
-    const prodiMap = {};
-    fullList.forEach(a => {
-      if (!a.prodi) return;
-      prodiMap[a.prodi] = (prodiMap[a.prodi] || 0) + 1;
-    });
-    const prodiChart = Object.entries(prodiMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10); // top 10 prodi
-
-    // Distribusi per tahun lulus
-    const tahunMap = {};
-    fullList.forEach(a => {
-      if (!a.tahunLulus) return;
-      tahunMap[a.tahunLulus] = (tahunMap[a.tahunLulus] || 0) + 1;
-    });
-    const tahunChart = Object.entries(tahunMap).sort((a, b) => a[0] - b[0]);
 
     res.render('laporan', {
       title: 'Laporan & Statistik Pelacakan',
-      stats,
-      prodiChart,
-      tahunChart,
+      stats, prodiChart, tahunChart,
     });
   } catch (err) {
     console.error('[Controller] getLaporan error:', err);
