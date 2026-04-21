@@ -4,16 +4,21 @@
 -- =============================================================
 
 -- ── 1. INDEXES (Wajib untuk performa 100k+ data) ─────────────
--- Index pada kolom yang sering dipakai untuk filter/search/sort
+-- Aktifkan pg_trgm extension untuk mendukung ILIKE yang cepat (% prefix & suffix)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
-CREATE INDEX IF NOT EXISTS idx_alumni_status
-    ON alumni(status);
+-- Index trigram untuk kolom yang sering dicari dengan ILIKE
+CREATE INDEX IF NOT EXISTS idx_alumni_nama_trgm
+    ON alumni USING gin(nama_lengkap gin_trgm_ops);
 
-CREATE INDEX IF NOT EXISTS idx_alumni_nama_lengkap
-    ON alumni USING gin(to_tsvector('simple', nama_lengkap));
+CREATE INDEX IF NOT EXISTS idx_alumni_nim_trgm
+    ON alumni USING gin(nim gin_trgm_ops);
 
-CREATE INDEX IF NOT EXISTS idx_alumni_nim
-    ON alumni(nim);
+CREATE INDEX IF NOT EXISTS idx_alumni_prodi_trgm
+    ON alumni USING gin(prodi gin_trgm_ops);
+
+CREATE INDEX IF NOT EXISTS idx_alumni_fakultas_trgm
+    ON alumni USING gin(fakultas gin_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_prodi
     ON alumni(prodi);

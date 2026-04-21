@@ -21,16 +21,24 @@ function invalidateStatsCache() {
   _statsCacheTime = 0;
 }
 
+// Opsi filter statis (dipassing ke view untuk membangun UI dropdown)
+const JENIS_OPTIONS = ['PNS', 'Swasta', 'BUMN', 'Wirausaha', 'Freelance'];
+const TAHUN_OPTIONS = Array.from({ length: 2025 - 1990 + 1 }, (_, i) => 1990 + i).reverse(); // 2025..1990
+
 // ── GET /data — Data Master ───────────────────────────────────────────────
 exports.index = async (req, res, next) => {
   try {
-    const search = req.query.search || '';
-    const page   = Math.max(1, parseInt(req.query.page) || 1);
-    const limit  = 100; // max 100 per halaman
+    const search        = req.query.search        || '';
+    const tahunLulus    = req.query.tahun         || '';
+    const jenisPekerjaan= req.query.jenis         || '';
+    const page          = Math.max(1, parseInt(req.query.page) || 1);
+    const limit         = 100;
 
-    // Jalankan paginated query + stats secara paralel
+    const filters = { tahunLulus, jenisPekerjaan };
+
+    // Paginated query + stats berjalan paralel
     const [{ alumniList, total }, stats] = await Promise.all([
-      Alumni.getAllPaginated(search, page, limit),
+      Alumni.getAllPaginated(search, page, limit, filters),
       getCachedStats(),
     ]);
 
@@ -38,6 +46,7 @@ exports.index = async (req, res, next) => {
     res.render('index', {
       title: 'Data Master - Sistem Pelacakan Alumni',
       alumniList, search, page, totalPages, total, stats,
+      filters, JENIS_OPTIONS, TAHUN_OPTIONS,
     });
   } catch (err) {
     console.error('[Controller] index error:', err);

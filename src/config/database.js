@@ -27,15 +27,20 @@ function createMemoryDB() {
       }
       return [...data].sort((a, b) => b.id - a.id);
     },
-    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100) => {
-      const clampedLimit = Math.min(limit, 100); // enforce max 100
-      let filtered = searchQuery
-        ? data.filter(a =>
-            a.namaLengkap.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (a.prodi||'').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (a.status||'').toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        : [...data];
+    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100, filters = {}) => {
+      const clampedLimit = Math.min(limit, 100);
+      const { tahunLulus, jenisPekerjaan } = filters;
+      let filtered = [...data];
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        filtered = filtered.filter(a =>
+          a.namaLengkap.toLowerCase().includes(q) ||
+          (a.nim||'').toLowerCase().includes(q) ||
+          (a.prodi||'').toLowerCase().includes(q)
+        );
+      }
+      if (tahunLulus) filtered = filtered.filter(a => a.tahunLulus == parseInt(tahunLulus));
+      if (jenisPekerjaan) filtered = filtered.filter(a => a.jenisPekerjaan === jenisPekerjaan);
       filtered.sort((a, b) => b.id - a.id);
       const total = filtered.length;
       const alumniList = filtered.slice((page - 1) * clampedLimit, page * clampedLimit);
@@ -128,22 +133,28 @@ async function createSQLiteDB() {
       }
       return await dbConfig.all('SELECT * FROM alumni ORDER BY id DESC LIMIT 1000');
     },
-    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100) => {
-      const clampedLimit = Math.min(limit, 100); // enforce max 100
+    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100, filters = {}) => {
+      const clampedLimit = Math.min(limit, 100);
       const offset = (page - 1) * clampedLimit;
+      const { tahunLulus, jenisPekerjaan } = filters;
+
+      // Build dynamic WHERE clause
+      const conditions = [];
+      const params = [];
       if (searchQuery) {
         const q = `%${searchQuery}%`;
-        const [rows, countRow] = await Promise.all([
-          dbConfig.all('SELECT * FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR status LIKE ? ORDER BY id DESC LIMIT ? OFFSET ?', [q, q, q, clampedLimit, offset]),
-          dbConfig.get('SELECT COUNT(*) as count FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR status LIKE ?', [q, q, q]),
-        ]);
-        return { alumniList: rows, total: countRow.count };
+        conditions.push('(namaLengkap LIKE ? OR nim LIKE ? OR prodi LIKE ?)');
+        params.push(q, q, q);
       }
+      if (tahunLulus) { conditions.push('tahunLulus = ?'); params.push(parseInt(tahunLulus)); }
+      if (jenisPekerjaan) { conditions.push('jenisPekerjaan = ?'); params.push(jenisPekerjaan); }
+
+      const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
       const [rows, countRow] = await Promise.all([
-        dbConfig.all('SELECT * FROM alumni ORDER BY id DESC LIMIT ? OFFSET ?', [clampedLimit, offset]),
-        dbConfig.get('SELECT COUNT(*) as count FROM alumni'),
+        dbConfig.all(`SELECT * FROM alumni ${where} ORDER BY id DESC LIMIT ? OFFSET ?`, [...params, clampedLimit, offset]),
+        dbConfig.get(`SELECT COUNT(*) as count FROM alumni ${where}`, params),
       ]);
-      return { alumniList: rows, total: countRow.count };
+      return { alumniList: rows, total: countRow.count || 0 };
     },
     getAlumniById: async (id) => await dbConfig.get('SELECT * FROM alumni WHERE id = ?', [id]),
     addAlumni: async (alumni) => {
@@ -285,25 +296,34 @@ async function createSupabaseDB() {
       return (data || []).map(fromRow);
     },
 
-    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100) => {
-      const clampedLimit = Math.min(limit, 100); // enforce max 100
+    getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100, filters = {}) => {
+      const clampedLimit = Math.min(limit, 100);
       const from = (page - 1) * clampedLimit;
       const to   = from + clampedLimit - 1;
+      const { tahunLulus, jenisPekerjaan } = filters;
 
-      // Base query builder (reusable)
-      const buildQuery = (withSearch) => {
-        let q = supabase.from('alumni')
-          .select('*', { count: 'exact' })
-          .eq('status', 'Teridentifikasi dari Sumber Publik')
-          .order('id', { ascending: false })
-          .range(from, to);
-        if (withSearch) {
-          q = q.or(`nama_lengkap.ilike.%${withSearch}%,prodi.ilike.%${withSearch}%,nim.ilike.%${withSearch}%,fakultas.ilike.%${withSearch}%`);
-        }
-        return q;
-      };
+      // Build query secara dinamis — hanya status Teridentifikasi + filter opsional
+      let q = supabase.from('alumni')
+        .select('*', { count: 'exact' })
+        .eq('status', 'Teridentifikasi dari Sumber Publik')
+        .order('id', { ascending: false })
+        .range(from, to);
 
-      const { data, count } = await buildQuery(searchQuery || null);
+      // Search: partial match nama, NIM, prodi, fakultas
+      if (searchQuery) {
+        q = q.or(
+          `nama_lengkap.ilike.%${searchQuery}%,` +
+          `nim.ilike.%${searchQuery}%,` +
+          `prodi.ilike.%${searchQuery}%,` +
+          `fakultas.ilike.%${searchQuery}%`
+        );
+      }
+      // Filter: tahun lulus
+      if (tahunLulus) q = q.eq('tahun_lulus', parseInt(tahunLulus));
+      // Filter: jenis pekerjaan
+      if (jenisPekerjaan) q = q.eq('jenis_pekerjaan', jenisPekerjaan);
+
+      const { data, count } = await q;
       return { alumniList: (data || []).map(fromRow), total: count || 0 };
     },
 
