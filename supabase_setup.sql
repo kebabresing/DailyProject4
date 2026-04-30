@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS alumniv2 (
   nama TEXT,
   nim BIGINT,
   tahun_masuk INTEGER,
-  tanggal_lulus INTEGER,
+  tanggal_lulus DATE,
   fakultas TEXT,
   prodi TEXT
 );
@@ -167,11 +167,11 @@ RETURNS TABLE(tanggal_lulus INTEGER, count BIGINT)
 LANGUAGE SQL
 STABLE
 AS $$
-  SELECT tanggal_lulus, COUNT(*) AS count
+  SELECT EXTRACT(YEAR FROM alumniv2.tanggal_lulus)::INTEGER, COUNT(*) AS count
   FROM alumniv2
-  WHERE tanggal_lulus IS NOT NULL AND tanggal_lulus > 0
-  GROUP BY tanggal_lulus
-  ORDER BY tanggal_lulus ASC;
+  WHERE alumniv2.tanggal_lulus IS NOT NULL
+  GROUP BY EXTRACT(YEAR FROM alumniv2.tanggal_lulus)
+  ORDER BY 1 ASC;
 $$;
 
 

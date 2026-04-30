@@ -323,8 +323,11 @@ async function createSupabaseDB() {
         }
         q = q.or(orQuery);
       }
-      // Filter: tahun lulus
-      if (tahunLulus) q = q.eq('tanggal_lulus', parseInt(tahunLulus));
+      // Filter: tahun lulus (sekarang bertipe DATE)
+      if (tahunLulus) {
+        const year = parseInt(tahunLulus);
+        q = q.gte('tanggal_lulus', `${year}-01-01`).lte('tanggal_lulus', `${year}-12-31`);
+      }
       // Filter: jenis pekerjaan
       if (jenisPekerjaan) q = q.eq('jenis_pekerjaan', jenisPekerjaan);
 
