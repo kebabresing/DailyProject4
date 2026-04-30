@@ -9,10 +9,10 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Index trigram untuk kolom yang sering dicari dengan ILIKE
 CREATE INDEX IF NOT EXISTS idx_alumni_nama_trgm
-    ON alumniv2 USING gin(nama_lengkap gin_trgm_ops);
+    ON alumniv2 USING gin(nama gin_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_nim_trgm
-    ON alumniv2 USING gin(nim gin_trgm_ops);
+    ON alumniv2 USING gin((nim::text) gin_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_prodi_trgm
     ON alumniv2 USING gin(prodi gin_trgm_ops);
@@ -23,8 +23,8 @@ CREATE INDEX IF NOT EXISTS idx_alumni_fakultas_trgm
 CREATE INDEX IF NOT EXISTS idx_alumni_prodi
     ON alumniv2(prodi);
 
-CREATE INDEX IF NOT EXISTS idx_alumni_tahun_lulus
-    ON alumniv2(tahun_lulus);
+CREATE INDEX IF NOT EXISTS idx_alumni_tanggal_lulus
+    ON alumniv2(tanggal_lulus);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_jenis_pekerjaan
     ON alumniv2(jenis_pekerjaan);
@@ -89,15 +89,15 @@ $$;
 -- Dipanggil via: supabase.rpc('get_tahun_distribution')
 
 CREATE OR REPLACE FUNCTION get_tahun_distribution()
-RETURNS TABLE(tahun_lulus INTEGER, count BIGINT)
+RETURNS TABLE(tanggal_lulus INTEGER, count BIGINT)
 LANGUAGE SQL
 STABLE
 AS $$
-  SELECT tahun_lulus, COUNT(*) AS count
+  SELECT tanggal_lulus, COUNT(*) AS count
   FROM alumniv2
-  WHERE tahun_lulus IS NOT NULL AND tahun_lulus > 0
-  GROUP BY tahun_lulus
-  ORDER BY tahun_lulus ASC;
+  WHERE tanggal_lulus IS NOT NULL AND tanggal_lulus > 0
+  GROUP BY tanggal_lulus
+  ORDER BY tanggal_lulus ASC;
 $$;
 
 

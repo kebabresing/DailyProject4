@@ -292,7 +292,11 @@ async function createSupabaseDB() {
       // Dipakai: export excel, tracker scheduler — batasi dengan limit
       let q = supabase.from('alumniv2').select('*').order('id', { ascending: false });
       if (searchQuery) {
-        q = q.or(`nama.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`);
+        let orQuery = `nama.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`;
+        if (!isNaN(searchQuery) && String(searchQuery).trim() !== '') {
+          orQuery += `,nim.eq.${searchQuery}`;
+        }
+        q = q.or(orQuery);
       }
       const { data } = await q.limit(limit);
       return (data || []).map(fromRow);
@@ -311,14 +315,13 @@ async function createSupabaseDB() {
         .order('id', { ascending: false })
         .range(from, to);
 
-      // Search: partial match nama, NIM, prodi, fakultas
+      // Search: partial match nama, prodi, fakultas
       if (searchQuery) {
-        q = q.or(
-          `nama.ilike.%${searchQuery}%,` +
-          `nim.ilike.%${searchQuery}%,` +
-          `prodi.ilike.%${searchQuery}%,` +
-          `fakultas.ilike.%${searchQuery}%`
-        );
+        let orQuery = `nama.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`;
+        if (!isNaN(searchQuery) && String(searchQuery).trim() !== '') {
+          orQuery += `,nim.eq.${searchQuery}`;
+        }
+        q = q.or(orQuery);
       }
       // Filter: tahun lulus
       if (tahunLulus) q = q.eq('tanggal_lulus', parseInt(tahunLulus));
