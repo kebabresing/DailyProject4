@@ -64,6 +64,50 @@ CREATE INDEX IF NOT EXISTS idx_alumni_status_id
     ON alumniv2(status, id DESC);
 
 
+
+-- ── 1.5 Tracking Tables (buat jika belum ada) ─────────────────
+CREATE TABLE IF NOT EXISTS tracking_jobs (
+  id            SERIAL PRIMARY KEY,
+  started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  finished_at   TIMESTAMPTZ,
+  status        TEXT NOT NULL DEFAULT 'running',
+  total_alumni  INTEGER DEFAULT 0,
+  total_results INTEGER DEFAULT 0,
+  triggered_by  TEXT DEFAULT 'manual'
+);
+
+CREATE TABLE IF NOT EXISTS tracking_queries (
+  id          SERIAL PRIMARY KEY,
+  job_id      INTEGER NOT NULL REFERENCES tracking_jobs(id),
+  alumni_id   INTEGER NOT NULL,
+  alumni_name TEXT NOT NULL,
+  query_text  TEXT NOT NULL,
+  source      TEXT NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tracking_results (
+  id                   SERIAL PRIMARY KEY,
+  job_id               INTEGER NOT NULL REFERENCES tracking_jobs(id),
+  alumni_id            INTEGER NOT NULL,
+  alumni_name          TEXT NOT NULL,
+  source               TEXT NOT NULL,
+  source_url           TEXT,
+  extracted_name       TEXT,
+  extracted_title      TEXT,
+  extracted_company    TEXT,
+  extracted_location   TEXT,
+  extracted_activity   TEXT,
+  raw_snippet          TEXT,
+  confidence_score     INTEGER DEFAULT 0,
+  match_classification TEXT DEFAULT 'needs_verification',
+  cross_validated      BOOLEAN DEFAULT FALSE,
+  admin_action         TEXT,
+  admin_note           TEXT,
+  resolved_at          TIMESTAMPTZ,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ── 2. TRACKING TABLE INDEXES ─────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_tracking_results_admin_action
     ON tracking_results(admin_action);
@@ -131,48 +175,6 @@ AS $$
 $$;
 
 
--- ── 6. Tracking Tables (buat jika belum ada) ─────────────────
-CREATE TABLE IF NOT EXISTS tracking_jobs (
-  id            SERIAL PRIMARY KEY,
-  started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  finished_at   TIMESTAMPTZ,
-  status        TEXT NOT NULL DEFAULT 'running',
-  total_alumni  INTEGER DEFAULT 0,
-  total_results INTEGER DEFAULT 0,
-  triggered_by  TEXT DEFAULT 'manual'
-);
-
-CREATE TABLE IF NOT EXISTS tracking_queries (
-  id          SERIAL PRIMARY KEY,
-  job_id      INTEGER NOT NULL REFERENCES tracking_jobs(id),
-  alumni_id   INTEGER NOT NULL,
-  alumni_name TEXT NOT NULL,
-  query_text  TEXT NOT NULL,
-  source      TEXT NOT NULL,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS tracking_results (
-  id                   SERIAL PRIMARY KEY,
-  job_id               INTEGER NOT NULL REFERENCES tracking_jobs(id),
-  alumni_id            INTEGER NOT NULL,
-  alumni_name          TEXT NOT NULL,
-  source               TEXT NOT NULL,
-  source_url           TEXT,
-  extracted_name       TEXT,
-  extracted_title      TEXT,
-  extracted_company    TEXT,
-  extracted_location   TEXT,
-  extracted_activity   TEXT,
-  raw_snippet          TEXT,
-  confidence_score     INTEGER DEFAULT 0,
-  match_classification TEXT DEFAULT 'needs_verification',
-  cross_validated      BOOLEAN DEFAULT FALSE,
-  admin_action         TEXT,
-  admin_note           TEXT,
-  resolved_at          TIMESTAMPTZ,
-  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
 
 -- ── Verifikasi: Cek semua index berhasil dibuat ──────────────
 SELECT indexname, tablename FROM pg_indexes
