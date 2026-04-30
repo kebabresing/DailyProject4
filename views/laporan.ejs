@@ -1,169 +1,446 @@
 <%- include('partials/header') %>
 
-<div class="px-4 py-8 sm:px-0">
-    <div class="mb-8 border-b border-slate-200/60 pb-5">
-        <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-indigo-800 font-outfit tracking-tight">Dashboard & Laporan Statistik</h1>
-        <p class="mt-2 text-sm text-slate-500 font-medium">
-            Hasil agregat analitik dari data pelacakan alumni publik. Diperbarui otomatis setiap 60 detik.
-        </p>
-    </div>
+<style>
+  :root {
+    --g1:#4f46e5; --g2:#7c3aed; --g3:#06b6d4; --g4:#22c55e;
+    --card:rgba(255,255,255,.04); --card-h:rgba(255,255,255,.07);
+    --border:rgba(255,255,255,.08); --border-h:rgba(255,255,255,.15);
+    --text:#f1f5f9; --muted:#64748b; --muted2:#475569;
+  }
 
-    <!-- KPI Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-10">
-        <!-- Total -->
-        <div class="col-span-2 lg:col-span-2 bg-white/70 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-lg p-6 flex items-center gap-5">
-            <div class="w-14 h-14 rounded-2xl bg-slate-100 flex items-center justify-center text-2xl flex-shrink-0">🎓</div>
-            <div>
-                <div class="text-xs text-slate-400 font-bold uppercase tracking-widest">Total Database</div>
-                <div class="text-4xl font-extrabold text-slate-800 font-outfit mt-1"><%= stats.total.toLocaleString('id-ID') %></div>
-                <div class="text-xs text-slate-400 mt-0.5">Alumni terdaftar</div>
-            </div>
-        </div>
-        <!-- Teridentifikasi -->
-        <div class="col-span-1 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm p-5 text-center">
-            <div class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Teridentifikasi</div>
-            <div class="text-3xl font-black text-emerald-700 font-outfit mt-2"><%= stats.teridentifikasi %></div>
-            <div class="text-xs text-emerald-500 mt-1">≥ 70% match</div>
-        </div>
-        <!-- Perlu Verifikasi -->
-        <div class="col-span-1 bg-amber-50 border border-amber-100 rounded-2xl shadow-sm p-5 text-center">
-            <div class="text-xs text-amber-600 font-bold uppercase tracking-wider">Perlu Verifikasi</div>
-            <div class="text-3xl font-black text-amber-700 font-outfit mt-2"><%= stats.perluVerifikasi %></div>
-            <div class="text-xs text-amber-500 mt-1">40–69% match</div>
-        </div>
-        <!-- Belum Ditemukan -->
-        <div class="col-span-1 bg-rose-50 border border-rose-100 rounded-2xl shadow-sm p-5 text-center">
-            <div class="text-xs text-rose-600 font-bold uppercase tracking-wider">Belum Ditemukan</div>
-            <div class="text-3xl font-black text-rose-700 font-outfit mt-2"><%= stats.belumDitemukan %></div>
-            <div class="text-xs text-rose-500 mt-1">< 40% match</div>
-        </div>
-        <!-- Bekerja -->
-        <div class="col-span-1 bg-sky-50 border border-sky-100 rounded-2xl shadow-sm p-5 text-center">
-            <div class="text-xs text-sky-600 font-bold uppercase tracking-wider">Bekerja</div>
-            <div class="text-3xl font-black text-sky-700 font-outfit mt-2"><%= stats.bekerja %></div>
-            <div class="text-xs text-sky-500 mt-1">PNS / Swasta / BUMN</div>
-        </div>
-    </div>
+  /* ── Bento grid ── */
+  .bento { display:grid; gap:14px; }
+  .bento-6 { grid-template-columns:repeat(6,1fr); }
+  .bento-3 { grid-template-columns:repeat(3,1fr); }
+  .bento-2 { grid-template-columns:repeat(2,1fr); }
 
-    <!-- Charts Row 1 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <!-- Doughnut — Status -->
-        <div class="bg-white/70 backdrop-blur-xl border border-slate-200/60 shadow-lg rounded-2xl p-6">
-            <h3 class="text-base font-bold text-slate-800 mb-1 font-outfit">Distribusi Status Pelacakan</h3>
-            <p class="text-xs text-slate-400 mb-4">Proporsi status seluruh data alumni</p>
-            <div class="max-w-xs mx-auto">
-                <canvas id="statusChart"></canvas>
-            </div>
-        </div>
+  /* ── Glass card ── */
+  .card {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    padding:24px;
+    transition:background .2s,border-color .2s,transform .2s;
+    position:relative;
+    overflow:hidden;
+  }
+  .card:hover { background:var(--card-h); border-color:var(--border-h); transform:translateY(-2px); }
+  .card::before {
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);
+  }
 
-        <!-- Bar — Tahun Lulus -->
-        <div class="bg-white/70 backdrop-blur-xl border border-slate-200/60 shadow-lg rounded-2xl p-6">
-            <h3 class="text-base font-bold text-slate-800 mb-1 font-outfit">Distribusi Tahun Lulus</h3>
-            <p class="text-xs text-slate-400 mb-4">Jumlah alumni per angkatan kelulusan</p>
-            <canvas id="tahunChart"></canvas>
-        </div>
-    </div>
+  /* KPI cards */
+  .kpi-icon {
+    width:46px;height:46px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;flex-shrink:0;margin-bottom:14px;
+  }
+  .kpi-val {
+    font-family:'Poppins',sans-serif;font-size:32px;font-weight:800;
+    color:#fff;line-height:1;letter-spacing:-1px;
+  }
+  .kpi-val .unit { font-size:16px;font-weight:600;color:var(--muted);margin-left:2px; }
+  .kpi-label { font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:6px; }
+  .kpi-sub   { font-size:11px;color:var(--muted2);margin-top:3px; }
 
-    <!-- Charts Row 2 -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <!-- Bar — Prodi -->
-        <div class="col-span-1 lg:col-span-2 bg-white/70 backdrop-blur-xl border border-slate-200/60 shadow-lg rounded-2xl p-6">
-            <h3 class="text-base font-bold text-slate-800 mb-1 font-outfit">Top 10 Program Studi</h3>
-            <p class="text-xs text-slate-400 mb-4">Jumlah alumni terbanyak per program studi</p>
-            <canvas id="prodiChart" style="max-height:280px"></canvas>
-        </div>
-    </div>
+  /* Accent strips */
+  .accent-green  { border-top:3px solid #22c55e; }
+  .accent-amber  { border-top:3px solid #f59e0b; }
+  .accent-red    { border-top:3px solid #ef4444; }
+  .accent-blue   { border-top:3px solid #3b82f6; }
+  .accent-violet { border-top:3px solid #8b5cf6; }
+  .accent-cyan   { border-top:3px solid #06b6d4; }
 
-    <!-- Priority Callout -->
-    <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 rounded-2xl p-6 flex gap-4 items-start">
-        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-            <svg class="h-5 w-5 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-sm text-amber-900 font-bold">Prioritas HRD</p>
-            <p class="text-sm text-amber-800 mt-1 leading-relaxed">
-                Admin / HRD disarankan fokus memverifikasi <span class="bg-amber-200/60 px-2 py-0.5 rounded font-bold"><%= stats.perluVerifikasi %> entri</span>
-                berstatus <em>"Perlu Verifikasi Manual"</em>. Entri ini memiliki skor kecocokan 40–69% dan memerlukan diskresi manusia.
-            </p>
-        </div>
+  /* Big stat card (hero) */
+  .hero-card {
+    background:linear-gradient(135deg,rgba(79,70,229,.2) 0%,rgba(124,58,237,.15) 50%,rgba(6,182,212,.1) 100%);
+    border:1px solid rgba(79,70,229,.3);
+  }
+  .hero-card:hover { border-color:rgba(79,70,229,.5); }
+
+  /* Chart container */
+  .chart-wrap { position:relative;height:220px; }
+  .chart-title { font-family:'Poppins',sans-serif;font-size:14px;font-weight:700;color:#fff;margin:0 0 4px; }
+  .chart-sub   { font-size:11.5px;color:var(--muted);margin:0 0 18px; }
+
+  /* Pill badge */
+  .pill {
+    display:inline-flex;align-items:center;gap:5px;
+    padding:4px 11px;border-radius:99px;font-size:11.5px;font-weight:600;
+  }
+  .pill-green  { background:rgba(34,197,94,.12); color:#86efac; border:1px solid rgba(34,197,94,.2); }
+  .pill-amber  { background:rgba(245,158,11,.12); color:#fcd34d; border:1px solid rgba(245,158,11,.2); }
+  .pill-red    { background:rgba(239,68,68,.12);  color:#fca5a5; border:1px solid rgba(239,68,68,.2); }
+  .pill-blue   { background:rgba(59,130,246,.12); color:#93c5fd; border:1px solid rgba(59,130,246,.2); }
+  .pill-violet { background:rgba(139,92,246,.12); color:#c4b5fd; border:1px solid rgba(139,92,246,.2); }
+
+  /* Progress bar */
+  .prog-track { height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden; }
+  .prog-fill  { height:100%;border-radius:99px;transition:width .8s ease; }
+
+  /* Ring metric */
+  .ring-wrap { display:flex;align-items:center;gap:20px; }
+  .ring-val   { font-family:'Poppins',sans-serif;font-size:42px;font-weight:800;color:#fff;line-height:1; }
+  .ring-sub   { font-size:12px;color:var(--muted);margin-top:4px; }
+
+  /* Callout */
+  .callout {
+    background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+    border-radius:16px;padding:18px 22px;display:flex;gap:14px;align-items:flex-start;
+  }
+
+  /* Action buttons */
+  .action-btn {
+    display:inline-flex;align-items:center;gap:7px;
+    padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;
+    text-decoration:none;transition:all .2s;border:1px solid transparent;
+  }
+  .action-btn-primary {
+    background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;
+    box-shadow:0 4px 16px rgba(79,70,229,.3);
+  }
+  .action-btn-primary:hover { box-shadow:0 8px 24px rgba(79,70,229,.5);transform:translateY(-1px); }
+  .action-btn-ghost {
+    background:rgba(255,255,255,.05);color:#94a3b8;
+    border-color:rgba(255,255,255,.1);
+  }
+  .action-btn-ghost:hover { background:rgba(255,255,255,.1);color:#fff; }
+
+  /* Top company list */
+  .top-item {
+    display:flex;align-items:center;gap:12px;
+    padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);
+  }
+  .top-item:last-child { border-bottom:none;padding-bottom:0; }
+  .top-rank {
+    width:26px;height:26px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;flex-shrink:0;
+    background:rgba(255,255,255,.06);color:var(--muted);
+  }
+  .top-rank.gold   { background:rgba(251,191,36,.15);color:#fbbf24; }
+  .top-rank.silver { background:rgba(148,163,184,.12);color:#94a3b8; }
+  .top-rank.bronze { background:rgba(180,120,60,.12); color:#d97706; }
+
+  /* Gradient text */
+  .grad-text {
+    background:linear-gradient(90deg,#818cf8,#06b6d4,#22c55e);
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+
+  /* Animated number */
+  @keyframes countUp { from { opacity:0;transform:translateY(8px); } to { opacity:1;transform:none; } }
+  .kpi-val { animation:countUp .5s ease both; }
+
+  /* Responsive */
+  @media(max-width:900px) {
+    .bento-6 { grid-template-columns:repeat(2,1fr); }
+    .bento-3 { grid-template-columns:repeat(1,1fr); }
+    .bento-2 { grid-template-columns:1fr; }
+    .span-2  { grid-column:span 1 !important; }
+    .span-3  { grid-column:span 2 !important; }
+  }
+  @media(max-width:540px) {
+    .bento-6 { grid-template-columns:1fr 1fr; }
+    .card { padding:18px; }
+    .kpi-val { font-size:26px; }
+  }
+</style>
+
+<!-- Page header -->
+<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px">
+  <div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;display:inline-block;animation:pulse2 2s infinite"></span>
+      <span style="font-size:12px;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:.8px">Live Dashboard</span>
     </div>
+    <h1 style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;color:#fff;margin:0;letter-spacing:-1px">
+      Analitik & Laporan <span class="grad-text">Alumni UMM</span>
+    </h1>
+    <p style="color:#475569;font-size:13.5px;margin:6px 0 0">Data diperbarui otomatis · <%= new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) %></p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="/data" class="action-btn action-btn-ghost">📋 Data Master</a>
+    <a href="/export" class="action-btn action-btn-primary">⬇ Export Excel</a>
+  </div>
 </div>
+
+<!-- ══ ROW 1: KPI Bento (6 cols) ══ -->
+<div class="bento bento-6" style="margin-bottom:14px">
+
+  <!-- Hero: Total -->
+  <div class="card hero-card" style="grid-column:span 2;display:flex;flex-direction:column;justify-content:space-between">
+    <div>
+      <div class="kpi-icon" style="background:rgba(79,70,229,.2)">🎓</div>
+      <div class="kpi-val"><%= stats.total.toLocaleString('id-ID') %></div>
+      <div class="kpi-label">Total Alumni Terdaftar</div>
+    </div>
+    <div style="margin-top:20px">
+      <div style="font-size:11px;color:#475569;margin-bottom:6px">Kelengkapan Data</div>
+      <div class="prog-track">
+        <div class="prog-fill" style="width:<%= stats.total > 0 ? Math.round((stats.teridentifikasi/stats.total)*100) : 0 %>%;background:linear-gradient(90deg,#4f46e5,#06b6d4)"></div>
+      </div>
+      <div style="font-size:11px;color:#475569;margin-top:5px"><%= stats.total > 0 ? Math.round((stats.teridentifikasi/stats.total)*100) : 0 %>% teridentifikasi</div>
+    </div>
+  </div>
+
+  <!-- Teridentifikasi -->
+  <div class="card accent-green">
+    <div class="kpi-icon" style="background:rgba(34,197,94,.12)">✅</div>
+    <div class="kpi-val" style="color:#86efac"><%= stats.teridentifikasi.toLocaleString('id-ID') %></div>
+    <div class="kpi-label">Teridentifikasi</div>
+    <div class="kpi-sub">Skor ≥ 70%</div>
+  </div>
+
+  <!-- Perlu Verifikasi -->
+  <div class="card accent-amber">
+    <div class="kpi-icon" style="background:rgba(245,158,11,.12)">⚠️</div>
+    <div class="kpi-val" style="color:#fcd34d"><%= stats.perluVerifikasi.toLocaleString('id-ID') %></div>
+    <div class="kpi-label">Perlu Verifikasi</div>
+    <div class="kpi-sub">Skor 40–69%</div>
+  </div>
+
+  <!-- Belum Ditemukan -->
+  <div class="card accent-red">
+    <div class="kpi-icon" style="background:rgba(239,68,68,.12)">🔍</div>
+    <div class="kpi-val" style="color:#fca5a5"><%= stats.belumDitemukan.toLocaleString('id-ID') %></div>
+    <div class="kpi-label">Belum Ditemukan</div>
+    <div class="kpi-sub">Skor &lt; 40%</div>
+  </div>
+
+  <!-- Bekerja -->
+  <div class="card accent-blue">
+    <div class="kpi-icon" style="background:rgba(59,130,246,.12)">💼</div>
+    <div class="kpi-val" style="color:#93c5fd"><%= stats.bekerja.toLocaleString('id-ID') %></div>
+    <div class="kpi-label">Bekerja</div>
+    <div class="kpi-sub">PNS / Swasta / BUMN</div>
+  </div>
+
+</div>
+
+<!-- ══ ROW 2: Charts Bento ══ -->
+<div class="bento bento-3" style="margin-bottom:14px">
+
+  <!-- Doughnut: Status -->
+  <div class="card">
+    <p class="chart-title">Distribusi Status</p>
+    <p class="chart-sub">Proporsi data alumni</p>
+    <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+  </div>
+
+  <!-- Bar: Tahun Lulus -->
+  <div class="card" style="grid-column:span 2">
+    <p class="chart-title">Tren Alumni per Tahun Lulus</p>
+    <p class="chart-sub">Jumlah alumni per angkatan kelulusan</p>
+    <div class="chart-wrap"><canvas id="tahunChart"></canvas></div>
+  </div>
+
+</div>
+
+<!-- ══ ROW 3: More Charts ══ -->
+<div class="bento bento-2" style="margin-bottom:14px">
+
+  <!-- Horizontal Bar: Top Prodi -->
+  <div class="card">
+    <p class="chart-title">Top 10 Program Studi</p>
+    <p class="chart-sub">Alumni terbanyak per prodi</p>
+    <div style="height:260px"><canvas id="prodiChart"></canvas></div>
+  </div>
+
+  <!-- Pie: Jenis Pekerjaan -->
+  <div class="card">
+    <p class="chart-title">Distribusi Jenis Pekerjaan</p>
+    <p class="chart-sub">Komposisi kategori pekerjaan alumni</p>
+    <div style="max-width:260px;margin:0 auto;height:220px"><canvas id="pekChart"></canvas></div>
+
+    <!-- Persen bekerja -->
+    <div style="margin-top:20px;text-align:center">
+      <div style="font-family:'Poppins',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1"><%= persenBekerja %>%</div>
+      <div style="font-size:12px;color:#475569;margin-top:4px">Alumni terdata bekerja</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ ROW 4: Prodi Full + Callout ══ -->
+<div class="bento bento-2" style="margin-bottom:14px">
+
+  <!-- Top Companies -->
+  <div class="card">
+    <p class="chart-title">🏢 Top Perusahaan Alumni</p>
+    <p class="chart-sub">Tempat kerja terbanyak</p>
+    <% if (topComp && topComp.length > 0) { %>
+    <% topComp.slice(0,8).forEach(([name, count], i) => { %>
+    <div class="top-item">
+      <div class="top-rank <%= i===0 ? 'gold' : i===1 ? 'silver' : i===2 ? 'bronze' : '' %>"><%= i+1 %></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= name %></div>
+        <div class="prog-track" style="margin-top:5px">
+          <div class="prog-fill" style="width:<%= topComp[0][1] > 0 ? Math.round((count/topComp[0][1])*100) : 0 %>%;background:linear-gradient(90deg,#4f46e5,#7c3aed)"></div>
+        </div>
+      </div>
+      <div style="font-size:12px;font-weight:700;color:#94a3b8;flex-shrink:0"><%= count %></div>
+    </div>
+    <% }) %>
+    <% } else { %>
+    <div style="text-align:center;padding:32px 0;color:#334155">
+      <div style="font-size:32px;margin-bottom:8px">🏗️</div>
+      <div style="font-size:13px">Belum ada data perusahaan</div>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Callout + Quick actions -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <!-- Callout -->
+    <div class="callout">
+      <div style="font-size:22px;flex-shrink:0">⚡</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#fcd34d;margin-bottom:6px">Prioritas Verifikasi</div>
+        <div style="font-size:13px;color:#94a3b8;line-height:1.6">
+          Ada <strong style="color:#fbbf24"><%= stats.perluVerifikasi.toLocaleString('id-ID') %></strong> alumni dengan skor 40–69% yang menunggu verifikasi manual oleh admin.
+        </div>
+        <div style="margin-top:14px">
+          <a href="/pipeline" class="action-btn action-btn-primary" style="font-size:12px;padding:8px 14px">Buka Pipeline →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick stats -->
+    <div class="card" style="flex:1">
+      <p class="chart-title" style="margin-bottom:16px">⚙️ Sistem</p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:#64748b">Database</span>
+          <span class="pill pill-green">● Supabase Online</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:#64748b">Total Alumni</span>
+          <span style="font-size:13px;font-weight:700;color:#e2e8f0"><%= stats.total.toLocaleString('id-ID') %></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:#64748b">Teridentifikasi</span>
+          <span style="font-size:13px;font-weight:700;color:#86efac"><%= stats.teridentifikasi.toLocaleString('id-ID') %></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:#64748b">Wirausaha</span>
+          <span style="font-size:13px;font-weight:700;color:#c4b5fd"><%= stats.wirausaha.toLocaleString('id-ID') %></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;color:#64748b">Cache TTL</span>
+          <span class="pill pill-blue">60 detik</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  @keyframes pulse2 { 0%,100%{opacity:1} 50%{opacity:.3} }
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const COLORS = {
-        green:  { bg: 'rgba(34,197,94,0.8)',  border: 'rgba(34,197,94,1)' },
-        yellow: { bg: 'rgba(234,179,8,0.8)',  border: 'rgba(234,179,8,1)' },
-        red:    { bg: 'rgba(239,68,68,0.8)',  border: 'rgba(239,68,68,1)' },
-        blue:   { bg: 'rgba(99,102,241,0.8)', border: 'rgba(99,102,241,1)' },
-    };
+  Chart.defaults.color = '#475569';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+  Chart.defaults.font.family = "'Inter', sans-serif";
 
-    // ── Doughnut: Status ──────────────────────────────────────────────────
-    new Chart(document.getElementById('statusChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Teridentifikasi', 'Perlu Verifikasi', 'Belum Ditemukan'],
-            datasets: [{
-                data: [<%= stats.teridentifikasi %>, <%= stats.perluVerifikasi %>, <%= stats.belumDitemukan %>],
-                backgroundColor: [COLORS.green.bg, COLORS.yellow.bg, COLORS.red.bg],
-                borderColor:     [COLORS.green.border, COLORS.yellow.border, COLORS.red.border],
-                borderWidth: 2, hoverOffset: 6,
-            }]
-        },
-        options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom' } } }
-    });
+  const glow = (hex, a=.15) => hex + Math.round(a*255).toString(16).padStart(2,'0');
 
-    // ── Bar: Tahun Lulus ─────────────────────────────────────────────────
-    const tahunData = <%- JSON.stringify(tahunChart) %>;
-    new Chart(document.getElementById('tahunChart'), {
-        type: 'bar',
-        data: {
-            labels: tahunData.map(d => d[0]),
-            datasets: [{
-                label: 'Jumlah Alumni',
-                data: tahunData.map(d => d[1]),
-                backgroundColor: COLORS.blue.bg,
-                borderColor: COLORS.blue.border,
-                borderWidth: 1, borderRadius: 6,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false } },
-                y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } },
-            }
-        }
-    });
+  // ── Doughnut: Status ─────────────────────────────────────────────────────
+  new Chart(document.getElementById('statusChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Teridentifikasi', 'Perlu Verifikasi', 'Belum Ditemukan'],
+      datasets: [{
+        data: [<%= stats.teridentifikasi %>, <%= stats.perluVerifikasi %>, <%= stats.belumDitemukan %>],
+        backgroundColor: ['rgba(34,197,94,.7)', 'rgba(245,158,11,.7)', 'rgba(239,68,68,.7)'],
+        borderColor:     ['#22c55e', '#f59e0b', '#ef4444'],
+        borderWidth: 2, hoverOffset: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } }
+      }
+    }
+  });
 
-    // ── Bar: Prodi ────────────────────────────────────────────────────────
-    const prodiData = <%- JSON.stringify(prodiChart) %>;
-    const prodiColors = prodiData.map((_, i) => `hsl(${220 + i * 18}, 80%, ${60 + (i % 3) * 5}%)`);
-    new Chart(document.getElementById('prodiChart'), {
-        type: 'bar',
-        data: {
-            labels: prodiData.map(d => d[0]),
-            datasets: [{
-                label: 'Jumlah Alumni',
-                data: prodiData.map(d => d[1]),
-                backgroundColor: prodiColors.map(c => c + 'cc'),
-                borderColor: prodiColors,
-                borderWidth: 1, borderRadius: 6,
-            }]
-        },
-        options: {
-            responsive: true,
-            indexAxis: 'y',   // horizontal bar
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(0,0,0,0.04)' } },
-                y: { grid: { display: false } },
-            }
-        }
+  // ── Bar: Tahun Lulus ─────────────────────────────────────────────────────
+  const tahunData = <%- JSON.stringify(tahunChart) %>;
+  new Chart(document.getElementById('tahunChart'), {
+    type: 'bar',
+    data: {
+      labels: tahunData.map(d => d[0]),
+      datasets: [{
+        label: 'Jumlah Alumni',
+        data: tahunData.map(d => d[1]),
+        backgroundColor: tahunData.map((_, i) => `hsla(${220 + i*2}, 80%, 65%, .7)`),
+        borderColor: tahunData.map((_, i) => `hsl(${220 + i*2}, 80%, 65%)`),
+        borderWidth: 1, borderRadius: 5, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
+        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(255,255,255,.05)' } }
+      }
+    }
+  });
+
+  // ── Horizontal Bar: Prodi ─────────────────────────────────────────────────
+  const prodiData = <%- JSON.stringify(prodiChart) %>;
+  new Chart(document.getElementById('prodiChart'), {
+    type: 'bar',
+    data: {
+      labels: prodiData.map(d => d[0]),
+      datasets: [{
+        label: 'Jumlah Alumni',
+        data: prodiData.map(d => d[1]),
+        backgroundColor: prodiData.map((_, i) => `hsla(${200 + i*18}, 75%, 60%, .65)`),
+        borderColor:     prodiData.map((_, i) => `hsl(${200 + i*18}, 75%, 60%)`),
+        borderWidth: 1, borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(255,255,255,.05)' } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    }
+  });
+
+  // ── Pie: Jenis Pekerjaan ──────────────────────────────────────────────────
+  const pekData = <%- JSON.stringify(pekChart || []) %>;
+  if (pekData.length > 0 && pekData.some(d => d[1] > 0)) {
+    new Chart(document.getElementById('pekChart'), {
+      type: 'pie',
+      data: {
+        labels: pekData.map(d => d[0]),
+        datasets: [{
+          data: pekData.map(d => d[1]),
+          backgroundColor: ['rgba(99,102,241,.75)','rgba(6,182,212,.75)','rgba(34,197,94,.75)','rgba(245,158,11,.75)','rgba(239,68,68,.75)'],
+          borderColor:     ['#6366f1','#06b6d4','#22c55e','#f59e0b','#ef4444'],
+          borderWidth: 2, hoverOffset: 8,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { padding: 12, usePointStyle: true, font: { size: 10 } } } }
+      }
     });
+  }
 </script>
 
 <%- include('partials/footer') %>
