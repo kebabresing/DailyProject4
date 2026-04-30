@@ -9,29 +9,29 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Index trigram untuk kolom yang sering dicari dengan ILIKE
 CREATE INDEX IF NOT EXISTS idx_alumni_nama_trgm
-    ON alumni USING gin(nama_lengkap gin_trgm_ops);
+    ON alumniv2 USING gin(nama_lengkap gin_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_nim_trgm
-    ON alumni USING gin(nim gin_trgm_ops);
+    ON alumniv2 USING gin(nim gin_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_prodi_trgm
-    ON alumni USING gin(prodi gin_trgm_ops);
+    ON alumniv2 USING gin(prodi gin_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_fakultas_trgm
-    ON alumni USING gin(fakultas gin_trgm_ops);
+    ON alumniv2 USING gin(fakultas gin_trgm_ops);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_prodi
-    ON alumni(prodi);
+    ON alumniv2(prodi);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_tahun_lulus
-    ON alumni(tahun_lulus);
+    ON alumniv2(tahun_lulus);
 
 CREATE INDEX IF NOT EXISTS idx_alumni_jenis_pekerjaan
-    ON alumni(jenis_pekerjaan);
+    ON alumniv2(jenis_pekerjaan);
 
 -- Composite index: paling sering dipakai di getAlumniPaginated
 CREATE INDEX IF NOT EXISTS idx_alumni_status_id
-    ON alumni(status, id DESC);
+    ON alumniv2(status, id DESC);
 
 
 -- ── 2. TRACKING TABLE INDEXES ─────────────────────────────────
@@ -62,7 +62,7 @@ AS $$
     'bekerja',         COUNT(*) FILTER (WHERE jenis_pekerjaan IN ('PNS', 'Swasta', 'BUMN')),
     'wirausaha',       COUNT(*) FILTER (WHERE jenis_pekerjaan IN ('Wirausaha', 'Freelance'))
   )
-  FROM alumni;
+  FROM alumniv2;
 $$;
 
 
@@ -76,7 +76,7 @@ LANGUAGE SQL
 STABLE
 AS $$
   SELECT prodi, COUNT(*) AS count
-  FROM alumni
+  FROM alumniv2
   WHERE prodi IS NOT NULL AND prodi <> ''
   GROUP BY prodi
   ORDER BY count DESC
@@ -94,7 +94,7 @@ LANGUAGE SQL
 STABLE
 AS $$
   SELECT tahun_lulus, COUNT(*) AS count
-  FROM alumni
+  FROM alumniv2
   WHERE tahun_lulus IS NOT NULL AND tahun_lulus > 0
   GROUP BY tahun_lulus
   ORDER BY tahun_lulus ASC;

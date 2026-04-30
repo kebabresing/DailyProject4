@@ -267,14 +267,14 @@ async function createSupabaseDB() {
   }) : null;
 
   // Seed otomatis HANYA jika tabel benar-benar kosong
-  const { count, error } = await supabase.from('alumni').select('*', { count: 'exact', head: true });
+  const { count, error } = await supabase.from('alumniv2').select('*', { count: 'exact', head: true });
   if (error) {
     console.error(`[DB] Peringatan: Gagal mengecek Supabase (Tabel mungkin belum ada atau URL/Key salah). Error: ${error.message}`);
   } else if (count === 0) {
     const rows = fullSeedData.map(toRow);
     if (rows.length > 0) {
       for (let i = 0; i < rows.length; i += 100) {
-        await supabase.from('alumni').insert(rows.slice(i, i + 100));
+        await supabase.from('alumniv2').insert(rows.slice(i, i + 100));
       }
       console.log(`[DB] Seeded ${rows.length} dummy alumni to Supabase (tabel kosong)`);
     } else {
@@ -288,7 +288,7 @@ async function createSupabaseDB() {
     // ── Data listing (dengan server-side filtering + range pagination) ────
     getAlumni: async (searchQuery = '', limit = 500) => {
       // Dipakai: export excel, tracker scheduler — batasi dengan limit
-      let q = supabase.from('alumni').select('*').order('id', { ascending: false });
+      let q = supabase.from('alumniv2').select('*').order('id', { ascending: false });
       if (searchQuery) {
         q = q.or(`nama_lengkap.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`);
       }
@@ -303,7 +303,7 @@ async function createSupabaseDB() {
       const { tahunLulus, jenisPekerjaan } = filters;
 
       // Build query secara dinamis — hanya status Teridentifikasi + filter opsional
-      let q = supabase.from('alumni')
+      let q = supabase.from('alumniv2')
         .select('*', { count: 'exact' })
         .eq('status', 'Teridentifikasi dari Sumber Publik')
         .order('id', { ascending: false })
@@ -328,19 +328,19 @@ async function createSupabaseDB() {
     },
 
     getAlumniById: async (id) => {
-      const { data } = await supabase.from('alumni').select('*').eq('id', id).single();
+      const { data } = await supabase.from('alumniv2').select('*').eq('id', id).single();
       return fromRow(data);
     },
     addAlumni: async (alumni) => {
-      const { data } = await supabase.from('alumni').insert([toRow(alumni)]).select().single();
+      const { data } = await supabase.from('alumniv2').insert([toRow(alumni)]).select().single();
       return fromRow(data);
     },
     updateAlumni: async (id, updateData) => {
-      await supabase.from('alumni').update(toRow(updateData)).eq('id', id);
+      await supabase.from('alumniv2').update(toRow(updateData)).eq('id', id);
       return updateData;
     },
     deleteAlumni: async (id) => {
-      await supabase.from('alumni').delete().eq('id', id);
+      await supabase.from('alumniv2').delete().eq('id', id);
       return true;
     },
 
@@ -363,12 +363,12 @@ async function createSupabaseDB() {
       // Fallback: 6 parallel COUNT queries (masih cepat dengan index)
       console.warn('[DB] RPC get_alumni_stats tidak tersedia, pakai fallback COUNT queries');
       const [tot, teri, perlu, belum, bek, wir] = await Promise.all([
-        supabase.from('alumni').select('*', { count: 'exact', head: true }),
-        supabase.from('alumni').select('*', { count: 'exact', head: true }).eq('status', 'Teridentifikasi dari Sumber Publik'),
-        supabase.from('alumni').select('*', { count: 'exact', head: true }).eq('status', 'Perlu Verifikasi Manual'),
-        supabase.from('alumni').select('*', { count: 'exact', head: true }).eq('status', 'Belum Ditemukan di Sumber Publik'),
-        supabase.from('alumni').select('*', { count: 'exact', head: true }).in('jenis_pekerjaan', ['PNS', 'Swasta', 'BUMN']),
-        supabase.from('alumni').select('*', { count: 'exact', head: true }).in('jenis_pekerjaan', ['Wirausaha', 'Freelance']),
+        supabase.from('alumniv2').select('*', { count: 'exact', head: true }),
+        supabase.from('alumniv2').select('*', { count: 'exact', head: true }).eq('status', 'Teridentifikasi dari Sumber Publik'),
+        supabase.from('alumniv2').select('*', { count: 'exact', head: true }).eq('status', 'Perlu Verifikasi Manual'),
+        supabase.from('alumniv2').select('*', { count: 'exact', head: true }).eq('status', 'Belum Ditemukan di Sumber Publik'),
+        supabase.from('alumniv2').select('*', { count: 'exact', head: true }).in('jenis_pekerjaan', ['PNS', 'Swasta', 'BUMN']),
+        supabase.from('alumniv2').select('*', { count: 'exact', head: true }).in('jenis_pekerjaan', ['Wirausaha', 'Freelance']),
       ]);
       return {
         total:           tot.count  || 0,
