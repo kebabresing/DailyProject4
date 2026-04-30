@@ -1,389 +1,305 @@
 <%- include('partials/header') %>
 
 <style>
-  :root {
-    --g1:#4f46e5; --g2:#7c3aed; --g3:#06b6d4; --g4:#22c55e;
-    --card:rgba(255,255,255,.04); --card-h:rgba(255,255,255,.07);
-    --border:rgba(255,255,255,.08); --border-h:rgba(255,255,255,.15);
-    --text:#f1f5f9; --muted:#64748b; --muted2:#475569;
-  }
-
-  /* ── Bento grid ── */
-  .bento { display:grid; gap:14px; }
-  .bento-6 { grid-template-columns:repeat(6,1fr); }
-  .bento-3 { grid-template-columns:repeat(3,1fr); }
-  .bento-2 { grid-template-columns:repeat(2,1fr); }
-
-  /* ── Glass card ── */
-  .card {
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:20px;
-    backdrop-filter:blur(16px);
-    -webkit-backdrop-filter:blur(16px);
-    padding:24px;
-    transition:background .2s,border-color .2s,transform .2s;
-    position:relative;
-    overflow:hidden;
-  }
-  .card:hover { background:var(--card-h); border-color:var(--border-h); transform:translateY(-2px); }
-  .card::before {
-    content:'';position:absolute;top:0;left:0;right:0;height:1px;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent);
-  }
+  /* ── Laporan Dashboard Specific Styles ── */
+  .bento { display: grid; gap: 16px; }
+  .bento-6 { grid-template-columns: repeat(6, 1fr); }
+  .bento-3 { grid-template-columns: repeat(3, 1fr); }
+  .bento-2 { grid-template-columns: repeat(2, 1fr); }
 
   /* KPI cards */
   .kpi-icon {
-    width:46px;height:46px;border-radius:14px;
-    display:flex;align-items:center;justify-content:center;
-    font-size:20px;flex-shrink:0;margin-bottom:14px;
+    width: 44px; height: 44px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-bottom: 12px;
   }
+  .kpi-icon svg { color: currentColor; }
   .kpi-val {
-    font-family:'Poppins',sans-serif;font-size:32px;font-weight:800;
-    color:#fff;line-height:1;letter-spacing:-1px;
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 30px; font-weight: 800;
+    color: var(--slate-800); line-height: 1; letter-spacing: -1px;
+    animation: countUp .5s ease both;
   }
-  .kpi-val .unit { font-size:16px;font-weight:600;color:var(--muted);margin-left:2px; }
-  .kpi-label { font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:6px; }
-  .kpi-sub   { font-size:11px;color:var(--muted2);margin-top:3px; }
+  .kpi-label { font-size: 11.5px; font-weight: 700; color: var(--slate-500); text-transform: uppercase; letter-spacing: .5px; margin-top: 6px; }
+  .kpi-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
   /* Accent strips */
-  .accent-green  { border-top:3px solid #22c55e; }
-  .accent-amber  { border-top:3px solid #f59e0b; }
-  .accent-red    { border-top:3px solid #ef4444; }
-  .accent-blue   { border-top:3px solid #3b82f6; }
-  .accent-violet { border-top:3px solid #8b5cf6; }
-  .accent-cyan   { border-top:3px solid #06b6d4; }
+  .accent-blue   { border-top: 3px solid var(--blue-500); }
+  .accent-green  { border-top: 3px solid #22c55e; }
+  .accent-amber  { border-top: 3px solid #f59e0b; }
+  .accent-red    { border-top: 3px solid #ef4444; }
 
-  /* Big stat card (hero) */
+  /* Hero card */
   .hero-card {
-    background:linear-gradient(135deg,rgba(79,70,229,.2) 0%,rgba(124,58,237,.15) 50%,rgba(6,182,212,.1) 100%);
-    border:1px solid rgba(79,70,229,.3);
+    background: linear-gradient(135deg, var(--blue-50) 0%, #fff 100%);
+    border: 1px solid var(--blue-200);
   }
-  .hero-card:hover { border-color:rgba(79,70,229,.5); }
+  .hero-card:hover { border-color: var(--blue-400); }
 
   /* Chart container */
-  .chart-wrap { position:relative;height:220px; }
-  .chart-title { font-family:'Poppins',sans-serif;font-size:14px;font-weight:700;color:#fff;margin:0 0 4px; }
-  .chart-sub   { font-size:11.5px;color:var(--muted);margin:0 0 18px; }
-
-  /* Pill badge */
-  .pill {
-    display:inline-flex;align-items:center;gap:5px;
-    padding:4px 11px;border-radius:99px;font-size:11.5px;font-weight:600;
-  }
-  .pill-green  { background:rgba(34,197,94,.12); color:#86efac; border:1px solid rgba(34,197,94,.2); }
-  .pill-amber  { background:rgba(245,158,11,.12); color:#fcd34d; border:1px solid rgba(245,158,11,.2); }
-  .pill-red    { background:rgba(239,68,68,.12);  color:#fca5a5; border:1px solid rgba(239,68,68,.2); }
-  .pill-blue   { background:rgba(59,130,246,.12); color:#93c5fd; border:1px solid rgba(59,130,246,.2); }
-  .pill-violet { background:rgba(139,92,246,.12); color:#c4b5fd; border:1px solid rgba(139,92,246,.2); }
-
-  /* Progress bar */
-  .prog-track { height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden; }
-  .prog-fill  { height:100%;border-radius:99px;transition:width .8s ease; }
-
-  /* Ring metric */
-  .ring-wrap { display:flex;align-items:center;gap:20px; }
-  .ring-val   { font-family:'Poppins',sans-serif;font-size:42px;font-weight:800;color:#fff;line-height:1; }
-  .ring-sub   { font-size:12px;color:var(--muted);margin-top:4px; }
-
-  /* Callout */
-  .callout {
-    background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
-    border-radius:16px;padding:18px 22px;display:flex;gap:14px;align-items:flex-start;
-  }
-
-  /* Action buttons */
-  .action-btn {
-    display:inline-flex;align-items:center;gap:7px;
-    padding:10px 18px;border-radius:12px;font-size:13px;font-weight:600;
-    text-decoration:none;transition:all .2s;border:1px solid transparent;
-  }
-  .action-btn-primary {
-    background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;
-    box-shadow:0 4px 16px rgba(79,70,229,.3);
-  }
-  .action-btn-primary:hover { box-shadow:0 8px 24px rgba(79,70,229,.5);transform:translateY(-1px); }
-  .action-btn-ghost {
-    background:rgba(255,255,255,.05);color:#94a3b8;
-    border-color:rgba(255,255,255,.1);
-  }
-  .action-btn-ghost:hover { background:rgba(255,255,255,.1);color:#fff; }
+  .chart-wrap { position: relative; height: 240px; }
+  .chart-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14.5px; font-weight: 700; color: var(--slate-800); margin: 0 0 4px; }
+  .chart-sub   { font-size: 11.5px; color: var(--muted); margin: 0 0 20px; }
 
   /* Top company list */
   .top-item {
-    display:flex;align-items:center;gap:12px;
-    padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--slate-100);
   }
-  .top-item:last-child { border-bottom:none;padding-bottom:0; }
+  .top-item:last-child { border-bottom: none; padding-bottom: 0; }
   .top-rank {
-    width:26px;height:26px;border-radius:8px;
-    display:flex;align-items:center;justify-content:center;
-    font-size:11px;font-weight:700;flex-shrink:0;
-    background:rgba(255,255,255,.06);color:var(--muted);
+    width: 26px; height: 26px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    background: var(--slate-100); color: var(--slate-600);
   }
-  .top-rank.gold   { background:rgba(251,191,36,.15);color:#fbbf24; }
-  .top-rank.silver { background:rgba(148,163,184,.12);color:#94a3b8; }
-  .top-rank.bronze { background:rgba(180,120,60,.12); color:#d97706; }
+  .top-rank.gold   { background: #fef3c7; color: #d97706; }
+  .top-rank.silver { background: #f1f5f9; color: #64748b; }
+  .top-rank.bronze { background: #ffedd5; color: #c2410c; }
 
   /* Gradient text */
   .grad-text {
-    background:linear-gradient(90deg,#818cf8,#06b6d4,#22c55e);
-    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    background: linear-gradient(90deg, var(--blue-600), var(--blue-400));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
 
-  /* Animated number */
-  @keyframes countUp { from { opacity:0;transform:translateY(8px); } to { opacity:1;transform:none; } }
-  .kpi-val { animation:countUp .5s ease both; }
+  @keyframes countUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 
-  /* Responsive */
-  @media(max-width:900px) {
-    .bento-6 { grid-template-columns:repeat(2,1fr); }
-    .bento-3 { grid-template-columns:repeat(1,1fr); }
-    .bento-2 { grid-template-columns:1fr; }
-    .span-2  { grid-column:span 1 !important; }
-    .span-3  { grid-column:span 2 !important; }
+  /* Responsive Grid */
+  @media(max-width: 1024px) {
+    .bento-6 { grid-template-columns: repeat(3, 1fr); }
+    .hero-card { grid-column: span 3; }
+    .bento-3 { grid-template-columns: repeat(2, 1fr); }
+    .bento-2 { grid-template-columns: 1fr; }
   }
-  @media(max-width:540px) {
-    .bento-6 { grid-template-columns:1fr 1fr; }
-    .card { padding:18px; }
-    .kpi-val { font-size:26px; }
+  @media(max-width: 768px) {
+    .bento-6 { grid-template-columns: repeat(2, 1fr); }
+    .hero-card { grid-column: span 2; }
+    .bento-3 { grid-template-columns: 1fr; }
+  }
+  @media(max-width: 480px) {
+    .bento-6 { grid-template-columns: 1fr 1fr; }
+    .kpi-val { font-size: 24px; }
   }
 </style>
 
 <!-- Page header -->
-<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:28px">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px">
   <div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;display:inline-block;animation:pulse2 2s infinite"></span>
-      <span style="font-size:12px;font-weight:600;color:#22c55e;text-transform:uppercase;letter-spacing:.8px">Live Dashboard</span>
-    </div>
-    <h1 style="font-family:'Poppins',sans-serif;font-size:28px;font-weight:800;color:#fff;margin:0;letter-spacing:-1px">
-      Analitik & Laporan <span class="grad-text">Alumni UMM</span>
+    <h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:800;color:var(--slate-800);margin:0;letter-spacing:-.5px">
+      Laporan <span class="grad-text">Alumni UMM</span>
     </h1>
-    <p style="color:#475569;font-size:13.5px;margin:6px 0 0">Data diperbarui otomatis · <%= new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) %></p>
+    <p style="color:var(--muted);font-size:13px;margin:4px 0 0">Data diperbarui otomatis · <%= new Date().toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) %></p>
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <a href="/data" class="action-btn action-btn-ghost">📋 Data Master</a>
-    <a href="/export" class="action-btn action-btn-primary">⬇ Export Excel</a>
+    <a href="/data" class="btn btn-secondary">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+      Data Master
+    </a>
+    <a href="/export" class="btn btn-primary">
+      <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      Export Excel
+    </a>
   </div>
 </div>
 
-<!-- ══ ROW 1: KPI Bento (6 cols) ══ -->
-<div class="bento bento-6" style="margin-bottom:14px">
+<!-- ══ ROW 1: KPI Bento ══ -->
+<div class="bento bento-6" style="margin-bottom:16px">
 
   <!-- Hero: Total -->
-  <div class="card hero-card" style="grid-column:span 2;display:flex;flex-direction:column;justify-content:space-between">
+  <div class="g-card hero-card" style="grid-column:span 2;display:flex;flex-direction:column;justify-content:space-between;padding:24px">
     <div>
-      <div class="kpi-icon" style="background:rgba(79,70,229,.2)">🎓</div>
+      <div class="kpi-icon" style="background:var(--blue-100);color:var(--blue-600)">
+        <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+      </div>
       <div class="kpi-val"><%= stats.total.toLocaleString('id-ID') %></div>
-      <div class="kpi-label">Total Alumni Terdaftar</div>
+      <div class="kpi-label">Total Terdaftar</div>
     </div>
     <div style="margin-top:20px">
-      <div style="font-size:11px;color:#475569;margin-bottom:6px">Kelengkapan Data</div>
-      <div class="prog-track">
-        <div class="prog-fill" style="width:<%= stats.total > 0 ? Math.round((stats.teridentifikasi/stats.total)*100) : 0 %>%;background:linear-gradient(90deg,#4f46e5,#06b6d4)"></div>
+      <div style="font-size:11px;color:var(--slate-500);margin-bottom:6px;display:flex;justify-content:space-between">
+        <span>Kelengkapan Data</span>
+        <span style="font-weight:700"><%= stats.total > 0 ? Math.round((stats.teridentifikasi/stats.total)*100) : 0 %>%</span>
       </div>
-      <div style="font-size:11px;color:#475569;margin-top:5px"><%= stats.total > 0 ? Math.round((stats.teridentifikasi/stats.total)*100) : 0 %>% teridentifikasi</div>
+      <div class="g-prog">
+        <div class="g-prog-fill" style="width:<%= stats.total > 0 ? Math.round((stats.teridentifikasi/stats.total)*100) : 0 %>%"></div>
+      </div>
     </div>
   </div>
 
   <!-- Teridentifikasi -->
-  <div class="card accent-green">
-    <div class="kpi-icon" style="background:rgba(34,197,94,.12)">✅</div>
-    <div class="kpi-val" style="color:#86efac"><%= stats.teridentifikasi.toLocaleString('id-ID') %></div>
+  <div class="g-card accent-green g-card-p">
+    <div class="kpi-icon" style="background:#dcfce7;color:#16a34a">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+    </div>
+    <div class="kpi-val" style="color:#16a34a"><%= stats.teridentifikasi.toLocaleString('id-ID') %></div>
     <div class="kpi-label">Teridentifikasi</div>
     <div class="kpi-sub">Skor ≥ 70%</div>
   </div>
 
   <!-- Perlu Verifikasi -->
-  <div class="card accent-amber">
-    <div class="kpi-icon" style="background:rgba(245,158,11,.12)">⚠️</div>
-    <div class="kpi-val" style="color:#fcd34d"><%= stats.perluVerifikasi.toLocaleString('id-ID') %></div>
-    <div class="kpi-label">Perlu Verifikasi</div>
-    <div class="kpi-sub">Skor 40–69%</div>
+  <div class="g-card accent-amber g-card-p">
+    <div class="kpi-icon" style="background:#fef3c7;color:#d97706">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <div class="kpi-val" style="color:#d97706"><%= stats.perluVerifikasi.toLocaleString('id-ID') %></div>
+    <div class="kpi-label">Verifikasi</div>
+    <div class="kpi-sub">Skor 40-69%</div>
   </div>
 
   <!-- Belum Ditemukan -->
-  <div class="card accent-red">
-    <div class="kpi-icon" style="background:rgba(239,68,68,.12)">🔍</div>
-    <div class="kpi-val" style="color:#fca5a5"><%= stats.belumDitemukan.toLocaleString('id-ID') %></div>
+  <div class="g-card accent-red g-card-p">
+    <div class="kpi-icon" style="background:#fee2e2;color:#dc2626">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    </div>
+    <div class="kpi-val" style="color:#dc2626"><%= stats.belumDitemukan.toLocaleString('id-ID') %></div>
     <div class="kpi-label">Belum Ditemukan</div>
-    <div class="kpi-sub">Skor &lt; 40%</div>
+    <div class="kpi-sub">Skor < 40%</div>
   </div>
 
   <!-- Bekerja -->
-  <div class="card accent-blue">
-    <div class="kpi-icon" style="background:rgba(59,130,246,.12)">💼</div>
-    <div class="kpi-val" style="color:#93c5fd"><%= stats.bekerja.toLocaleString('id-ID') %></div>
-    <div class="kpi-label">Bekerja</div>
-    <div class="kpi-sub">PNS / Swasta / BUMN</div>
+  <div class="g-card accent-blue g-card-p">
+    <div class="kpi-icon" style="background:var(--blue-100);color:var(--blue-600)">
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+    </div>
+    <div class="kpi-val" style="color:var(--blue-600)"><%= (stats.swasta + stats.pns).toLocaleString('id-ID') %></div>
+    <div class="kpi-label">Pekerja Aktif</div>
+    <div class="kpi-sub">PNS / Swasta</div>
   </div>
 
 </div>
 
-<!-- ══ ROW 2: Charts Bento ══ -->
-<div class="bento bento-3" style="margin-bottom:14px">
-
-  <!-- Doughnut: Status -->
-  <div class="card">
-    <p class="chart-title">Distribusi Status</p>
-    <p class="chart-sub">Proporsi data alumni</p>
-    <div class="chart-wrap"><canvas id="statusChart"></canvas></div>
+<!-- ══ ROW 2: Charts ══ -->
+<div class="bento bento-2" style="margin-bottom:16px">
+  
+  <!-- Doughnut Chart -->
+  <div class="g-card g-card-p">
+    <p class="chart-title">Status Kelengkapan</p>
+    <p class="chart-sub">Proporsi data alumni berdasarkan kelengkapan</p>
+    <div class="chart-wrap">
+      <canvas id="statusChart"></canvas>
+    </div>
   </div>
 
-  <!-- Bar: Tahun Lulus -->
-  <div class="card" style="grid-column:span 2">
-    <p class="chart-title">Tren Alumni per Tahun Lulus</p>
+  <!-- Bar Chart Tahun -->
+  <div class="g-card g-card-p">
+    <p class="chart-title">Tren Lulusan</p>
     <p class="chart-sub">Jumlah alumni per angkatan kelulusan</p>
-    <div class="chart-wrap"><canvas id="tahunChart"></canvas></div>
-  </div>
-
-</div>
-
-<!-- ══ ROW 3: More Charts ══ -->
-<div class="bento bento-2" style="margin-bottom:14px">
-
-  <!-- Horizontal Bar: Top Prodi -->
-  <div class="card">
-    <p class="chart-title">Top 10 Program Studi</p>
-    <p class="chart-sub">Alumni terbanyak per prodi</p>
-    <div style="height:260px"><canvas id="prodiChart"></canvas></div>
-  </div>
-
-  <!-- Pie: Jenis Pekerjaan -->
-  <div class="card">
-    <p class="chart-title">Distribusi Jenis Pekerjaan</p>
-    <p class="chart-sub">Komposisi kategori pekerjaan alumni</p>
-    <div style="max-width:260px;margin:0 auto;height:220px"><canvas id="pekChart"></canvas></div>
-
-    <!-- Persen bekerja -->
-    <div style="margin-top:20px;text-align:center">
-      <div style="font-family:'Poppins',sans-serif;font-size:36px;font-weight:800;color:#fff;line-height:1"><%= persenBekerja %>%</div>
-      <div style="font-size:12px;color:#475569;margin-top:4px">Alumni terdata bekerja</div>
+    <div class="chart-wrap">
+      <canvas id="tahunChart"></canvas>
     </div>
   </div>
 
 </div>
 
-<!-- ══ ROW 4: Prodi Full + Callout ══ -->
-<div class="bento bento-2" style="margin-bottom:14px">
+<!-- ══ ROW 3: Charts & Lists ══ -->
+<div class="bento bento-3" style="margin-bottom:16px">
+
+  <!-- Top 10 Prodi -->
+  <div class="g-card g-card-p">
+    <p class="chart-title">Top Program Studi</p>
+    <p class="chart-sub">Alumni terbanyak per prodi</p>
+    <div class="chart-wrap" style="height:260px">
+      <canvas id="prodiChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Jenis Pekerjaan -->
+  <div class="g-card g-card-p">
+    <p class="chart-title">Kategori Pekerjaan</p>
+    <p class="chart-sub">Komposisi profesi alumni</p>
+    <div class="chart-wrap" style="height:260px">
+      <canvas id="pekChart"></canvas>
+    </div>
+  </div>
 
   <!-- Top Companies -->
-  <div class="card">
-    <p class="chart-title">🏢 Top Perusahaan Alumni</p>
+  <div class="g-card g-card-p" style="display:flex;flex-direction:column">
+    <p class="chart-title">Top Perusahaan</p>
     <p class="chart-sub">Tempat kerja terbanyak</p>
-    <% if (topComp && topComp.length > 0) { %>
-    <% topComp.slice(0,8).forEach(([name, count], i) => { %>
-    <div class="top-item">
-      <div class="top-rank <%= i===0 ? 'gold' : i===1 ? 'silver' : i===2 ? 'bronze' : '' %>"><%= i+1 %></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:13px;font-weight:600;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= name %></div>
-        <div class="prog-track" style="margin-top:5px">
-          <div class="prog-fill" style="width:<%= topComp[0][1] > 0 ? Math.round((count/topComp[0][1])*100) : 0 %>%;background:linear-gradient(90deg,#4f46e5,#7c3aed)"></div>
+    <div style="flex:1;overflow-y:auto;padding-right:4px">
+      <% if (topCompanies && topCompanies.length > 0) { %>
+        <% topCompanies.forEach((c, idx) => { %>
+        <div class="top-item">
+          <div class="top-rank <%= idx===0?'gold':idx===1?'silver':idx===2?'bronze':'' %>"><%= idx+1 %></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;color:var(--slate-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><%= c.tempatKerja %></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--blue-600);background:var(--blue-50);padding:2px 8px;border-radius:6px"><%= c.jumlah %></div>
         </div>
-      </div>
-      <div style="font-size:12px;font-weight:700;color:#94a3b8;flex-shrink:0"><%= count %></div>
-    </div>
-    <% }) %>
-    <% } else { %>
-    <div style="text-align:center;padding:32px 0;color:#334155">
-      <div style="font-size:32px;margin-bottom:8px">🏗️</div>
-      <div style="font-size:13px">Belum ada data perusahaan</div>
-    </div>
-    <% } %>
-  </div>
-
-  <!-- Callout + Quick actions -->
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <!-- Callout -->
-    <div class="callout">
-      <div style="font-size:22px;flex-shrink:0">⚡</div>
-      <div>
-        <div style="font-size:14px;font-weight:700;color:#fcd34d;margin-bottom:6px">Prioritas Verifikasi</div>
-        <div style="font-size:13px;color:#94a3b8;line-height:1.6">
-          Ada <strong style="color:#fbbf24"><%= stats.perluVerifikasi.toLocaleString('id-ID') %></strong> alumni dengan skor 40–69% yang menunggu verifikasi manual oleh admin.
-        </div>
-        <div style="margin-top:14px">
-          <a href="/pipeline" class="action-btn action-btn-primary" style="font-size:12px;padding:8px 14px">Buka Pipeline →</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick stats -->
-    <div class="card" style="flex:1">
-      <p class="chart-title" style="margin-bottom:16px">⚙️ Sistem</p>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;color:#64748b">Database</span>
-          <span class="pill pill-green">● Supabase Online</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;color:#64748b">Total Alumni</span>
-          <span style="font-size:13px;font-weight:700;color:#e2e8f0"><%= stats.total.toLocaleString('id-ID') %></span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;color:#64748b">Teridentifikasi</span>
-          <span style="font-size:13px;font-weight:700;color:#86efac"><%= stats.teridentifikasi.toLocaleString('id-ID') %></span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;color:#64748b">Wirausaha</span>
-          <span style="font-size:13px;font-weight:700;color:#c4b5fd"><%= stats.wirausaha.toLocaleString('id-ID') %></span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;color:#64748b">Cache TTL</span>
-          <span class="pill pill-blue">60 detik</span>
-        </div>
-      </div>
+        <% }) %>
+      <% } else { %>
+        <div style="text-align:center;padding:40px 0;color:var(--slate-400);font-size:13px">Belum ada data perusahaan</div>
+      <% } %>
     </div>
   </div>
 
 </div>
 
-<style>
-  @keyframes pulse2 { 0%,100%{opacity:1} 50%{opacity:.3} }
-</style>
+<!-- ══ ROW 4: Calls to Action ══ -->
+<div class="bento bento-2">
+
+  <div class="g-card" style="padding:22px;background:var(--blue-50);border-color:var(--blue-200);display:flex;gap:16px;align-items:flex-start">
+    <div style="background:#fff;width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--blue-600);box-shadow:0 2px 8px rgba(59,130,246,.15);flex-shrink:0">
+      <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    </div>
+    <div>
+      <div style="font-size:14.5px;font-weight:700;color:var(--blue-800);margin-bottom:4px">Prioritas Verifikasi</div>
+      <div style="font-size:13px;color:var(--blue-700);line-height:1.5;margin-bottom:12px">
+        Ada <strong style="color:var(--blue-900)"><%= stats.perluVerifikasi.toLocaleString('id-ID') %></strong> alumni dengan skor 40–69% yang menunggu verifikasi admin.
+      </div>
+      <a href="/pipeline" class="btn btn-primary btn-sm">Buka Pipeline</a>
+    </div>
+  </div>
+
+  <div class="g-card g-card-p" style="display:flex;flex-direction:column;justify-content:center">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px;color:var(--slate-500)">Status Database</span>
+      <span class="badge badge-green"><span class="live-dot" style="width:6px;height:6px;margin-right:4px"></span> Supabase Online</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:13px;color:var(--slate-500)">Wirausaha</span>
+      <span style="font-size:13.5px;font-weight:700;color:var(--slate-700)"><%= stats.wirausaha.toLocaleString('id-ID') %> alumni</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+      <span style="font-size:13px;color:var(--slate-500)">Sistem Cache</span>
+      <span class="badge badge-blue">Aktif (60s)</span>
+    </div>
+  </div>
+
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  Chart.defaults.color = '#475569';
-  Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+  Chart.defaults.color = '#64748b';
+  Chart.defaults.borderColor = '#f1f5f9';
   Chart.defaults.font.family = "'Inter', sans-serif";
 
-  const glow = (hex, a=.15) => hex + Math.round(a*255).toString(16).padStart(2,'0');
-
-  // ── Doughnut: Status ─────────────────────────────────────────────────────
+  // ── Doughnut: Status
   new Chart(document.getElementById('statusChart'), {
     type: 'doughnut',
     data: {
-      labels: ['Teridentifikasi', 'Perlu Verifikasi', 'Belum Ditemukan'],
+      labels: ['Teridentifikasi', 'Verifikasi', 'Belum Ditemukan'],
       datasets: [{
         data: [<%= stats.teridentifikasi %>, <%= stats.perluVerifikasi %>, <%= stats.belumDitemukan %>],
-        backgroundColor: ['rgba(34,197,94,.7)', 'rgba(245,158,11,.7)', 'rgba(239,68,68,.7)'],
-        borderColor:     ['#22c55e', '#f59e0b', '#ef4444'],
-        borderWidth: 2, hoverOffset: 8,
+        backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+        borderWidth: 0, hoverOffset: 4,
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      cutout: '68%',
-      plugins: {
-        legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyle: 'circle', font: { size: 11 } } }
-      }
+      responsive: true, maintainAspectRatio: false, cutout: '70%',
+      plugins: { legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, font: { size: 11 } } } }
     }
   });
 
-  // ── Bar: Tahun Lulus ─────────────────────────────────────────────────────
+  // ── Bar: Tahun Lulus
   const tahunData = <%- JSON.stringify(tahunChart) %>;
   new Chart(document.getElementById('tahunChart'), {
     type: 'bar',
     data: {
       labels: tahunData.map(d => d[0]),
       datasets: [{
-        label: 'Jumlah Alumni',
+        label: 'Alumni',
         data: tahunData.map(d => d[1]),
-        backgroundColor: tahunData.map((_, i) => `hsla(${220 + i*2}, 80%, 65%, .7)`),
-        borderColor: tahunData.map((_, i) => `hsl(${220 + i*2}, 80%, 65%)`),
-        borderWidth: 1, borderRadius: 5, borderSkipped: false,
+        backgroundColor: '#60a5fa', borderRadius: 4, barPercentage: 0.7,
       }]
     },
     options: {
@@ -391,37 +307,34 @@
       plugins: { legend: { display: false } },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
-        y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(255,255,255,.05)' } }
+        y: { beginAtZero: true, border: { display: false } }
       }
     }
   });
 
-  // ── Horizontal Bar: Prodi ─────────────────────────────────────────────────
+  // ── Horizontal Bar: Prodi
   const prodiData = <%- JSON.stringify(prodiChart) %>;
   new Chart(document.getElementById('prodiChart'), {
     type: 'bar',
     data: {
       labels: prodiData.map(d => d[0]),
       datasets: [{
-        label: 'Jumlah Alumni',
+        label: 'Alumni',
         data: prodiData.map(d => d[1]),
-        backgroundColor: prodiData.map((_, i) => `hsla(${200 + i*18}, 75%, 60%, .65)`),
-        borderColor:     prodiData.map((_, i) => `hsl(${200 + i*18}, 75%, 60%)`),
-        borderWidth: 1, borderRadius: 4,
+        backgroundColor: '#818cf8', borderRadius: 4, barPercentage: 0.6,
       }]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
       plugins: { legend: { display: false } },
       scales: {
-        x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: 'rgba(255,255,255,.05)' } },
-        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        x: { beginAtZero: true, border: { display: false } },
+        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
       }
     }
   });
 
-  // ── Pie: Jenis Pekerjaan ──────────────────────────────────────────────────
+  // ── Pie: Jenis Pekerjaan
   const pekData = <%- JSON.stringify(pekChart || []) %>;
   if (pekData.length > 0 && pekData.some(d => d[1] > 0)) {
     new Chart(document.getElementById('pekChart'), {
@@ -430,9 +343,8 @@
         labels: pekData.map(d => d[0]),
         datasets: [{
           data: pekData.map(d => d[1]),
-          backgroundColor: ['rgba(99,102,241,.75)','rgba(6,182,212,.75)','rgba(34,197,94,.75)','rgba(245,158,11,.75)','rgba(239,68,68,.75)'],
-          borderColor:     ['#6366f1','#06b6d4','#22c55e','#f59e0b','#ef4444'],
-          borderWidth: 2, hoverOffset: 8,
+          backgroundColor: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'],
+          borderWidth: 0, hoverOffset: 4,
         }]
       },
       options: {
