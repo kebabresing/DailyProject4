@@ -1,3 +1,33 @@
+
+-- ── 0. BIKIN/UPDATE TABEL ALUMNIV2 ───────────────────────────
+CREATE TABLE IF NOT EXISTS alumniv2 (
+  id SERIAL PRIMARY KEY,
+  nama TEXT,
+  nim BIGINT,
+  tahun_masuk INTEGER,
+  tanggal_lulus INTEGER,
+  fakultas TEXT,
+  prodi TEXT
+);
+
+-- Pastikan semua kolom yang dibutuhkan aplikasi tersedia
+ALTER TABLE alumniv2
+  ADD COLUMN IF NOT EXISTS kampus TEXT DEFAULT 'Universitas Muhammadiyah Malang',
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Belum Ditemukan di Sumber Publik',
+  ADD COLUMN IF NOT EXISTS confidence_score INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS jejak TEXT,
+  ADD COLUMN IF NOT EXISTS linkedin TEXT,
+  ADD COLUMN IF NOT EXISTS instagram TEXT,
+  ADD COLUMN IF NOT EXISTS facebook TEXT,
+  ADD COLUMN IF NOT EXISTS tiktok TEXT,
+  ADD COLUMN IF NOT EXISTS email TEXT,
+  ADD COLUMN IF NOT EXISTS no_hp TEXT,
+  ADD COLUMN IF NOT EXISTS tempat_kerja TEXT,
+  ADD COLUMN IF NOT EXISTS alamat_kerja TEXT,
+  ADD COLUMN IF NOT EXISTS posisi TEXT,
+  ADD COLUMN IF NOT EXISTS jenis_pekerjaan TEXT,
+  ADD COLUMN IF NOT EXISTS sosmed_tempat_kerja TEXT;
+
 -- =============================================================
 -- Alumni Tracker — Supabase Setup Script
 -- Jalankan di: Supabase Dashboard > SQL Editor
@@ -146,5 +176,5 @@ CREATE TABLE IF NOT EXISTS tracking_results (
 
 -- ── Verifikasi: Cek semua index berhasil dibuat ──────────────
 SELECT indexname, tablename FROM pg_indexes
-WHERE tablename IN ('alumni', 'tracking_results', 'tracking_queries')
+WHERE tablename IN ('alumniv2', 'tracking_results', 'tracking_queries')
 ORDER BY tablename, indexname;
