@@ -217,11 +217,12 @@ async function createSupabaseDB() {
 
   // Map camelCase app → snake_case Supabase
   const toRow = (d) => ({
-    nama_lengkap: d.namaLengkap,
+    nama: d.namaLengkap,
     nim: d.nim || null,
+    tahun_masuk: parseInt(d.tahunMasuk) || null,
     prodi: d.prodi,
     fakultas: d.fakultas || null,
-    tahun_lulus: parseInt(d.tahunLulus) || 0,
+    tanggal_lulus: parseInt(d.tahunLulus) || 0,
     kampus: d.kampus || 'Universitas Muhammadiyah Malang',
     status: d.status,
     confidence_score: parseInt(d.confidenceScore) || 0,
@@ -243,11 +244,12 @@ async function createSupabaseDB() {
   // Map snake_case Supabase → camelCase app
   const fromRow = (r) => r ? ({
     id: r.id,
-    namaLengkap: r.nama_lengkap,
+    namaLengkap: r.nama,
     nim: r.nim || '-',
+    tahunMasuk: r.tahun_masuk || null,
     prodi: r.prodi,
     fakultas: r.fakultas || '-',
-    tahunLulus: r.tahun_lulus,
+    tahunLulus: r.tanggal_lulus,
     kampus: r.kampus,
     status: r.status,
     confidenceScore: r.confidence_score,
@@ -290,7 +292,7 @@ async function createSupabaseDB() {
       // Dipakai: export excel, tracker scheduler — batasi dengan limit
       let q = supabase.from('alumniv2').select('*').order('id', { ascending: false });
       if (searchQuery) {
-        q = q.or(`nama_lengkap.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`);
+        q = q.or(`nama.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%,nim.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`);
       }
       const { data } = await q.limit(limit);
       return (data || []).map(fromRow);
@@ -312,14 +314,14 @@ async function createSupabaseDB() {
       // Search: partial match nama, NIM, prodi, fakultas
       if (searchQuery) {
         q = q.or(
-          `nama_lengkap.ilike.%${searchQuery}%,` +
+          `nama.ilike.%${searchQuery}%,` +
           `nim.ilike.%${searchQuery}%,` +
           `prodi.ilike.%${searchQuery}%,` +
           `fakultas.ilike.%${searchQuery}%`
         );
       }
       // Filter: tahun lulus
-      if (tahunLulus) q = q.eq('tahun_lulus', parseInt(tahunLulus));
+      if (tahunLulus) q = q.eq('tanggal_lulus', parseInt(tahunLulus));
       // Filter: jenis pekerjaan
       if (jenisPekerjaan) q = q.eq('jenis_pekerjaan', jenisPekerjaan);
 
@@ -389,7 +391,7 @@ async function createSupabaseDB() {
 
     getTahunDistribution: async () => {
       const { data, error } = await supabase.rpc('get_tahun_distribution');
-      if (!error && data) return data.map(r => [String(r.tahun_lulus), Number(r.count)]);
+      if (!error && data) return data.map(r => [String(r.tanggal_lulus), Number(r.count)]);
       console.warn('[DB] RPC get_tahun_distribution tidak tersedia');
       return [];
     },
