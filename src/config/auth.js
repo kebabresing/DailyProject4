@@ -6,7 +6,7 @@ const USERS = [
   {
     id: 1,
     username: 'admin',
-    passwordHash: '$2b$10$m6zldLCXzuQ81cQ7azWYGeHyYszX0HpQoSvmB.605cCHLW4ajeaJa',
+    passwordHash: '$2b$10$1CWNmC4Ryp4640fpCg137epPuziFosqXLp0SjoM2eZw5SzU99xwpa',
     role: 'admin',
     namaLengkap: 'Administrator'
   }
