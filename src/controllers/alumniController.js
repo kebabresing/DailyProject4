@@ -215,9 +215,15 @@ exports.resolvePipeline = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// ── GET /import ───────────────────────────────────────────────────────────
 exports.getImport = (req, res) => {
-  res.render('import', { title: 'Import Data CSV/Excel', preview: null, errors: [], isAdmin: isAdmin(req) });
+  res.render('import', {
+    title: 'Import Data CSV/Excel',
+    preview: null, errors: [], totalRows: 0, columns: [],
+    isAdmin: isAdmin(req),
+    alertType: req.query.alert || null,
+    imported:  req.query.imported || 0,
+    skipped:   req.query.skipped  || 0,
+  });
 };
 
 // ── POST /import/preview ──────────────────────────────────────────────────

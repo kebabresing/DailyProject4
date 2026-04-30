@@ -40,17 +40,16 @@
   </div>
 
   <!-- Alert -->
-  <% const alert = query?.alert || ''; %>
-  <% if (alert === 'import-success') { %>
-  <div class="alert-box alert-success">
-    ✅ Import berhasil! <strong><%= query.imported %></strong> alumni ditambahkan, <strong><%= query.skipped %></strong> baris dilewati.
+  <% if (alertType === 'import-success') { %>
+  <div class="g-alert g-alert-success">
+    ✅ Import berhasil! <strong><%= imported %></strong> alumni ditambahkan, <strong><%= skipped %></strong> baris dilewati.
   </div>
   <% } %>
-  <% if (alert === 'no-file') { %>
-  <div class="alert-box alert-error">⚠️ Tidak ada file yang dipilih.</div>
+  <% if (alertType === 'no-file') { %>
+  <div class="g-alert g-alert-error">⚠️ Tidak ada file yang dipilih.</div>
   <% } %>
-  <% if (alert === 'no-data') { %>
-  <div class="alert-box alert-error">⚠️ Sesi preview telah kedaluwarsa. Silakan upload ulang.</div>
+  <% if (alertType === 'no-data') { %>
+  <div class="g-alert g-alert-error">⚠️ Sesi preview telah kedaluwarsa. Silakan upload ulang.</div>
   <% } %>
 
   <!-- Step bar -->
