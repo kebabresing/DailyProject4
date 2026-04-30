@@ -1,175 +1,196 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= title %> | Alumni Tracker UMM</title>
-    <meta name="description" content="Sistem Pelacakan Alumni Universitas Muhammadiyah Malang berbasis data publik.">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        h1, h2, h3, .font-outfit { font-family: 'Outfit', sans-serif; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <meta name="description" content="Alumni Tracker UMM — Platform pelacakan dan manajemen alumni Universitas Muhammadiyah Malang.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --c-bg:    #060b1a;
+      --c-glass: rgba(255,255,255,0.05);
+      --c-border:rgba(255,255,255,0.10);
+      --c-indigo:#4f46e5;
+      --c-violet:#7c3aed;
+      --c-cyan:  #06b6d4;
+      --c-green: #22c55e;
+      --c-text:  #f1f5f9;
+      --c-muted: #94a3b8;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 100% 60% at 15% 0%,  rgba(79,70,229,.20) 0%, transparent 55%),
+        radial-gradient(ellipse 70%  50% at 85% 100%, rgba(6,182,212,.12) 0%, transparent 50%),
+        linear-gradient(160deg, #060b1a 0%, #0d1432 45%, #080f26 100%);
+      background-attachment: fixed;
+      color: var(--c-text);
+    }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:5px; height:5px }
+    ::-webkit-scrollbar-track { background:transparent }
+    ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.15); border-radius:99px }
+    ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.25) }
 
-        /* Page transition skeleton */
-        #page-loader {
-            position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 9999;
-            background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
-            background-size: 200% 100%;
-            animation: loading-bar 1.2s linear infinite;
-            opacity: 0; transition: opacity 0.2s;
-        }
-        #page-loader.active { opacity: 1; }
-        @keyframes loading-bar {
-            0%   { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
+    h1,h2,h3,.font-poppins { font-family:'Poppins',sans-serif }
 
-        /* Mobile menu smooth open/close */
-        #mobile-menu {
-            transition: max-height 0.3s ease, opacity 0.3s ease;
-            max-height: 0; overflow: hidden; opacity: 0;
-        }
-        #mobile-menu.open { max-height: 400px; opacity: 1; }
-    </style>
+    /* ── NAV ── */
+    nav.glass-nav {
+      background: rgba(6,11,26,0.65);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--c-border);
+      position: sticky; top:0; z-index:50;
+      box-shadow: 0 4px 24px rgba(0,0,0,.3);
+    }
+    .nav-inner {
+      max-width:1280px; margin:0 auto; padding:0 24px;
+      height:60px; display:flex; align-items:center; justify-content:space-between;
+    }
+    /* Logo */
+    .nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none }
+    .nav-logo img { height:40px; width:auto; object-fit:contain; filter:drop-shadow(0 0 8px rgba(79,70,229,.4)) }
+    .nav-logo-text { font-family:'Poppins',sans-serif; font-size:15px; font-weight:700; color:#fff; line-height:1.2 }
+    .nav-logo-sub  { font-size:10.5px; color:var(--c-muted); font-weight:400; font-family:'Inter',sans-serif }
+
+    /* Nav links */
+    .nav-links { display:flex; align-items:center; gap:4px }
+    .nav-link {
+      display:flex; align-items:center; gap:6px;
+      padding:7px 14px; border-radius:10px;
+      font-size:13px; font-weight:600; color:var(--c-muted);
+      text-decoration:none; transition:all .2s; white-space:nowrap;
+      border:1px solid transparent;
+    }
+    .nav-link:hover {
+      color:#fff; background:rgba(255,255,255,.07);
+      border-color:rgba(255,255,255,.1);
+    }
+    .nav-link.active {
+      color:#fff; background:rgba(79,70,229,.18);
+      border-color:rgba(79,70,229,.35);
+    }
+    .nav-link.tracker-link {
+      color:#a5b4fc; background:rgba(79,70,229,.12);
+      border-color:rgba(79,70,229,.3);
+    }
+    .nav-link.tracker-link:hover {
+      background:rgba(79,70,229,.22); border-color:rgba(79,70,229,.5);
+      box-shadow:0 0 16px rgba(79,70,229,.2);
+    }
+    /* User chip */
+    .user-chip {
+      display:flex; align-items:center; gap:10px;
+      padding:5px 5px 5px 14px;
+      background:rgba(255,255,255,.05); border:1px solid var(--c-border);
+      border-radius:99px; margin-left:8px;
+    }
+    .user-chip .uname { font-size:12.5px; font-weight:600; color:#e2e8f0 }
+    .user-chip .ulab  { font-size:10px; color:var(--c-muted); line-height:1 }
+    .logout-btn {
+      padding:6px 14px; background:rgba(239,68,68,.12);
+      border:1px solid rgba(239,68,68,.25); border-radius:99px;
+      color:#fca5a5; font-size:12px; font-weight:600; cursor:pointer;
+      transition:all .2s; font-family:'Inter',sans-serif;
+    }
+    .logout-btn:hover { background:rgba(239,68,68,.22); border-color:rgba(239,68,68,.4) }
+
+    /* Mobile hamburger */
+    .hamburger {
+      display:none; flex-direction:column; gap:4px; cursor:pointer;
+      padding:8px; border:none; background:none;
+    }
+    .hamburger span { width:20px; height:2px; background:#fff; border-radius:99px; transition:.2s }
+
+    /* Mobile nav drawer */
+    .mobile-drawer {
+      display:none; flex-direction:column; gap:6px;
+      padding:12px 16px; border-top:1px solid var(--c-border);
+      background:rgba(6,11,26,.8); backdrop-filter:blur(20px);
+    }
+    .mobile-drawer.open { display:flex }
+    .mobile-drawer .nav-link { width:100% }
+
+    @media(max-width:768px) {
+      .nav-links, .user-chip { display:none }
+      .hamburger { display:flex }
+    }
+  </style>
 </head>
-<body class="text-slate-700 bg-gradient-to-br from-slate-50 via-white to-indigo-50/50 flex flex-col min-h-screen selection:bg-indigo-500/30">
+<body>
 
-    <!-- Progress bar loader -->
-    <div id="page-loader"></div>
+<nav class="glass-nav" aria-label="Main navigation">
+  <div class="nav-inner">
+    <!-- Logo -->
+    <a href="/" class="nav-logo" aria-label="Alumni Tracker UMM Home">
+      <img src="/logo.png" alt="Logo UMM">
+      <div>
+        <div class="nav-logo-text">Alumni Tracker</div>
+        <div class="nav-logo-sub">Universitas Muhammadiyah Malang</div>
+      </div>
+    </a>
 
-    <nav class="bg-white/70 backdrop-blur-2xl border-b border-slate-200/80 shadow-[0_2px_16px_rgba(0,0,0,0.07)] w-full sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <!-- Logo -->
-                <a href="/" class="flex items-center group">
-                    <img src="/logo.png" alt="Alumni Tracker UMM" class="h-14 w-auto group-hover:scale-105 transition-transform duration-300">
-                </a>
+    <!-- Desktop nav -->
+    <div class="nav-links">
+      <a href="/" class="nav-link <% if(currentPath==='/')          {%>active<%}%>">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        Laporan
+      </a>
+      <a href="/data" class="nav-link <% if(currentPath==='/data')   {%>active<%}%>">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+        Data Master
+      </a>
+      <a href="/pipeline" class="nav-link <% if(currentPath==='/pipeline'){%>active<%}%>">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        Pipeline
+      </a>
+      <a href="/tracker" class="nav-link tracker-link <% if(currentPath==='/tracker'){%>active<%}%>">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        AI Tracker
+      </a>
+      <% if (user && user.role === 'admin') { %>
+      <a href="/import" class="nav-link <% if(currentPath==='/import'){%>active<%}%>" style="color:#34d399">
+        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        Import
+      </a>
+      <% } %>
 
-                <!-- Desktop Nav -->
-                <div class="hidden sm:flex items-center space-x-1">
-                    <%
-                    const navLinks = [
-                        { href: '/',        label: 'Laporan' },
-                        { href: '/data',    label: 'Data Master' },
-                        { href: '/pipeline',label: '🔍 Pipeline' },
-                        { href: '/tracker', label: '🤖 Tracker', highlight: true },
-                    ];
-                    navLinks.forEach(link => {
-                        const isActive = currentPath === link.href || (link.href !== '/' && currentPath.startsWith(link.href));
-                    %>
-                        <a href="<%= link.href %>"
-                           class="px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
-                           <%  if (isActive && link.highlight) { %>
-                               text-violet-700 bg-violet-100 ring-1 ring-inset ring-violet-300
-                           <%  } else if (isActive) { %>
-                               text-indigo-700 bg-indigo-50 ring-1 ring-inset ring-indigo-200
-                           <%  } else if (link.highlight) { %>
-                               text-violet-600 bg-violet-50 hover:bg-violet-100 ring-1 ring-inset ring-violet-200
-                           <%  } else { %>
-                               text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/60
-                           <%  } %>">
-                            <%= link.label %>
-                        </a>
-                    <% }); %>
-
-                    <% if (user) { %>
-                    <div class="flex items-center gap-3 ml-4 pl-4 border-l border-slate-200">
-                        <div class="text-right hidden md:block">
-                            <div class="text-xs text-slate-400 font-medium leading-none">Login sebagai</div>
-                            <div class="text-sm font-bold text-slate-700 mt-0.5"><%= user.namaLengkap %></div>
-                        </div>
-                        <div class="h-8 w-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-sm font-bold shadow-sm">
-                            <%= user.namaLengkap.charAt(0).toUpperCase() %>
-                        </div>
-                        <form action="/logout" method="POST">
-                            <button type="submit" class="bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold px-3 py-2 rounded-lg transition-all duration-200 border border-red-100 hover:border-red-200">
-                                🚪 Keluar
-                            </button>
-                        </form>
-                    </div>
-                    <% } %>
-                </div>
-
-                <!-- Mobile Hamburger Button -->
-                <button id="mobile-menu-btn" class="sm:hidden flex items-center justify-center w-10 h-10 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors" aria-label="Toggle menu">
-                    <svg id="hamburger-icon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                    <svg id="close-icon" class="w-5 h-5 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
+      <% if (user) { %>
+      <div class="user-chip">
+        <div>
+          <div class="uname"><%= user.namaLengkap %></div>
+          <div class="ulab" style="<%= user.role === 'admin' ? 'color:#a5b4fc' : 'color:#94a3b8' %>"><%= user.role === 'admin' ? '👑 Admin' : '👁 Viewer' %></div>
         </div>
+        <form action="/logout" method="POST" style="margin:0">
+          <button type="submit" class="logout-btn">Keluar</button>
+        </form>
+      </div>
+      <% } %>
+    </div>
 
-        <!-- Mobile Menu -->
-        <div id="mobile-menu" class="sm:hidden border-t border-slate-100 bg-white/95 backdrop-blur-xl px-4">
-            <div class="py-3 space-y-1">
-                <%
-                const mobileLinks = [
-                    { href: '/',        label: 'Laporan Statistik', icon: '📊' },
-                    { href: '/data',    label: 'Data Master',       icon: '🗃️' },
-                    { href: '/pipeline',label: 'Pipeline',          icon: '🔍' },
-                    { href: '/tracker', label: 'Intelligent Tracker', icon: '🤖' },
-                ];
-                mobileLinks.forEach(link => {
-                    const isActive = currentPath === link.href || (link.href !== '/' && currentPath.startsWith(link.href));
-                %>
-                    <a href="<%= link.href %>"
-                       class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors
-                       <%= isActive ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50' %>">
-                        <span class="text-base"><%= link.icon %></span>
-                        <%= link.label %>
-                        <% if (isActive) { %>
-                        <span class="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                        <% } %>
-                    </a>
-                <% }); %>
+    <!-- Hamburger -->
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
 
-                <% if (user) { %>
-                <div class="border-t border-slate-100 pt-3 mt-3">
-                    <div class="flex items-center justify-between px-3 py-2">
-                        <div>
-                            <div class="text-xs text-slate-400">Login sebagai</div>
-                            <div class="text-sm font-bold text-slate-800"><%= user.namaLengkap %></div>
-                        </div>
-                        <form action="/logout" method="POST">
-                            <button type="submit" class="bg-red-50 text-red-600 text-xs font-bold px-3 py-2 rounded-lg border border-red-100">
-                                🚪 Keluar
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                <% } %>
-            </div>
-        </div>
-    </nav>
+  <!-- Mobile drawer -->
+  <div class="mobile-drawer" id="mobileDrawer">
+    <a href="/"        class="nav-link">📊 Laporan</a>
+    <a href="/data"    class="nav-link">📋 Data Master</a>
+    <a href="/pipeline"class="nav-link">🔍 Pipeline</a>
+    <a href="/tracker" class="nav-link tracker-link">⚡ AI Tracker</a>
+    <% if (user) { %>
+    <form action="/logout" method="POST" style="margin-top:4px">
+      <button type="submit" class="logout-btn" style="width:100%;padding:10px">🚪 Keluar</button>
+    </form>
+    <% } %>
+  </div>
+</nav>
 
-    <main class="flex-grow w-full max-w-7xl mx-auto">
-
-<script>
-    // Mobile menu toggle
-    const btn  = document.getElementById('mobile-menu-btn');
-    const menu = document.getElementById('mobile-menu');
-    const hIcon = document.getElementById('hamburger-icon');
-    const xIcon = document.getElementById('close-icon');
-    btn.addEventListener('click', () => {
-        const open = menu.classList.toggle('open');
-        hIcon.classList.toggle('hidden', open);
-        xIcon.classList.toggle('hidden', !open);
-    });
-
-    // Page transition loader
-    const loader = document.getElementById('page-loader');
-    document.querySelectorAll('a[href]:not([target="_blank"]):not([href^="#"]):not([href^="javascript"])').forEach(a => {
-        a.addEventListener('click', () => {
-            loader.classList.add('active');
-        });
-    });
-    window.addEventListener('pageshow', () => loader.classList.remove('active'));
-</script>
+<main style="max-width:1280px;margin:0 auto;padding:28px 24px;min-height:calc(100vh - 60px - 64px)">

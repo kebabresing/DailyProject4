@@ -1,17 +1,21 @@
 /**
- * Middleware: Autentikasi & Otorisasi
- * Bertugas memproteksi route yang memerlukan login.
+ * Auth Middleware
+ * requireLogin  — redirect ke /login jika belum login
+ * requireAdmin  — redirect ke /data jika bukan admin (role-based access control)
  */
 
-/**
- * requireLogin - Pastikan user sudah login sebelum mengakses route.
- * Jika belum login, redirect ke halaman /login.
- */
 function requireLogin(req, res, next) {
-  if (req.session && req.session.user) {
-    return next();
+  if (!req.session?.user) {
+    return res.redirect('/login');
   }
-  return res.redirect('/login');
+  next();
 }
 
-module.exports = { requireLogin };
+function requireAdmin(req, res, next) {
+  if (req.session?.user?.role !== 'admin') {
+    return res.redirect('/data?alert=forbidden');
+  }
+  next();
+}
+
+module.exports = { requireLogin, requireAdmin };

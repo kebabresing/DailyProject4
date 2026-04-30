@@ -306,16 +306,17 @@ async function createSupabaseDB() {
       const clampedLimit = Math.min(limit, 100);
       const from = (page - 1) * clampedLimit;
       const to   = from + clampedLimit - 1;
-      const { tahunLulus, jenisPekerjaan } = filters;
+      const { tahunLulus, jenisPekerjaan, statusFilter } = filters;
 
-      // Build query secara dinamis — hanya status Teridentifikasi + filter opsional
       let q = supabase.from('alumniv2')
         .select('*', { count: 'exact' })
-        .eq('status', 'Teridentifikasi dari Sumber Publik')
         .order('id', { ascending: false })
         .range(from, to);
 
-      // Search: partial match nama, prodi, fakultas
+      // Filter status (default: semua)
+      if (statusFilter) q = q.eq('status', statusFilter);
+
+      // Search: partial match nama, prodi, fakultas, nim
       if (searchQuery) {
         let orQuery = `nama.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`;
         if (!isNaN(searchQuery) && String(searchQuery).trim() !== '') {
@@ -323,7 +324,7 @@ async function createSupabaseDB() {
         }
         q = q.or(orQuery);
       }
-      // Filter: tahun lulus (sekarang bertipe DATE)
+      // Filter: tahun lulus (bertipe DATE)
       if (tahunLulus) {
         const year = parseInt(tahunLulus);
         q = q.gte('tanggal_lulus', `${year}-01-01`).lte('tanggal_lulus', `${year}-12-31`);
@@ -401,6 +402,22 @@ async function createSupabaseDB() {
       console.warn('[DB] RPC get_tahun_distribution tidak tersedia');
       return [];
     },
+
+    getPekerjaanDistribution: async () => {
+      const types = ['PNS', 'Swasta', 'BUMN', 'Wirausaha', 'Freelance'];
+      const results = await Promise.all(
+        types.map(t => supabase.from('alumniv2').select('*', { count: 'exact', head: true }).eq('jenis_pekerjaan', t))
+      );
+      return types.map((t, i) => [t, results[i].count || 0]);
+    },
+
+    getTopCompanies: async (topN = 10) => {
+      const { data, error } = await supabase.rpc('get_top_companies', { top_n: topN });
+      if (!error && data) return data.map(r => [r.tempat_kerja, Number(r.count)]);
+      // Fallback: tidak tersedia
+      console.warn('[DB] RPC get_top_companies tidak tersedia');
+      return [];
+    },
   };
 }
 
@@ -425,13 +442,15 @@ async function getDB() {
 }
 
 module.exports = {
-  getAlumni: async (q, limit) => (await getDB()).getAlumni(q, limit),
-  getAlumniPaginated: async (q, page, limit) => (await getDB()).getAlumniPaginated(q, page, limit),
-  getStats:           async ()  => (await getDB()).getStats(),
-  getProdiDistribution: async () => (await getDB()).getProdiDistribution(),
-  getTahunDistribution: async () => (await getDB()).getTahunDistribution(),
-  getAlumniById: async (id) => (await getDB()).getAlumniById(id),
-  addAlumni: async (data) => (await getDB()).addAlumni(data),
-  updateAlumni: async (id, data) => (await getDB()).updateAlumni(id, data),
-  deleteAlumni: async (id) => (await getDB()).deleteAlumni(id)
+  getAlumni:                async (q, limit)              => (await getDB()).getAlumni(q, limit),
+  getAlumniPaginated:       async (q, page, limit, f)     => (await getDB()).getAlumniPaginated(q, page, limit, f),
+  getStats:                 async ()                      => (await getDB()).getStats(),
+  getProdiDistribution:     async ()                      => (await getDB()).getProdiDistribution(),
+  getTahunDistribution:     async ()                      => (await getDB()).getTahunDistribution(),
+  getPekerjaanDistribution: async ()                      => (await getDB()).getPekerjaanDistribution(),
+  getTopCompanies:          async (n)                     => (await getDB()).getTopCompanies(n),
+  getAlumniById:            async (id)                    => (await getDB()).getAlumniById(id),
+  addAlumni:                async (data)                  => (await getDB()).addAlumni(data),
+  updateAlumni:             async (id, data)               => (await getDB()).updateAlumni(id, data),
+  deleteAlumni:             async (id)                    => (await getDB()).deleteAlumni(id),
 };

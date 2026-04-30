@@ -193,14 +193,14 @@ const supabase = {
       sb.from('tracking_queries').select('*', { count: 'exact', head: true }),
     ]);
     return {
-      totalResults:    total.count    || 0,
-      pendingResults:  pending.count  || 0,
+      totalResults: total.count || 0,
+      pendingResults: pending.count || 0,
       approvedResults: approved.count || 0,
       rejectedResults: rejected.count || 0,
-      strongMatches:   strongMatch.count || 0,
-      crossValidated:  crossVal.count || 0,
-      totalJobs:       jobs.count     || 0,
-      totalQueries:    queries.count  || 0,
+      strongMatches: strongMatch.count || 0,
+      crossValidated: crossVal.count || 0,
+      totalJobs: jobs.count || 0,
+      totalQueries: queries.count || 0,
     };
   },
 };
@@ -234,9 +234,9 @@ async function sqliteAdapter() {
       const r = await db.run(
         `INSERT INTO tracking_results (job_id, alumni_id, alumni_name, source, source_url, extracted_name, extracted_title, extracted_company, extracted_location, extracted_activity, raw_snippet, confidence_score, match_classification, cross_validated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [result.jobId, result.alumniId, result.alumniName, result.source, result.sourceUrl,
-         result.extractedName, result.extractedTitle, result.extractedCompany,
-         result.extractedLocation, result.extractedActivity, result.rawSnippet,
-         result.confidenceScore, result.matchClassification, result.crossValidated ? 1 : 0]);
+        result.extractedName, result.extractedTitle, result.extractedCompany,
+        result.extractedLocation, result.extractedActivity, result.rawSnippet,
+        result.confidenceScore, result.matchClassification, result.crossValidated ? 1 : 0]);
       return { id: r.lastID };
     },
     async getPendingResults(limit = 50) {
@@ -267,14 +267,14 @@ async function sqliteAdapter() {
         db.get('SELECT COUNT(*) as count FROM tracking_queries'),
       ]);
       return {
-        totalResults:    total.count,
-        pendingResults:  pending.count,
+        totalResults: total.count,
+        pendingResults: pending.count,
         approvedResults: approved.count,
         rejectedResults: rejected.count,
-        strongMatches:   strongMatch.count,
-        crossValidated:  crossVal.count,
-        totalJobs:       jobs.count,
-        totalQueries:    queries.count,
+        strongMatches: strongMatch.count,
+        crossValidated: crossVal.count,
+        totalJobs: jobs.count,
+        totalQueries: queries.count,
       };
     },
   };
@@ -296,17 +296,17 @@ async function getAdapter() {
 
 module.exports = {
   getTrackingDB: getAdapter,
-  createJob:         async (...a) => (await getAdapter()).createJob(...a),
-  finishJob:         async (...a) => (await getAdapter()).finishJob(...a),
-  getJobs:           async (...a) => (await getAdapter()).getJobs(...a),
-  getLatestJob:      async ()     => (await getAdapter()).getLatestJob(),
-  saveQuery:         async (...a) => (await getAdapter()).saveQuery(...a),
-  getQueriesByJob:   async (...a) => (await getAdapter()).getQueriesByJob(...a),
-  saveResult:        async (...a) => (await getAdapter()).saveResult(...a),
+  createJob: async (...a) => (await getAdapter()).createJob(...a),
+  finishJob: async (...a) => (await getAdapter()).finishJob(...a),
+  getJobs: async (...a) => (await getAdapter()).getJobs(...a),
+  getLatestJob: async () => (await getAdapter()).getLatestJob(),
+  saveQuery: async (...a) => (await getAdapter()).saveQuery(...a),
+  getQueriesByJob: async (...a) => (await getAdapter()).getQueriesByJob(...a),
+  saveResult: async (...a) => (await getAdapter()).saveResult(...a),
   getPendingResults: async (...a) => (await getAdapter()).getPendingResults(...a),
-  getResultsByAlumni:async (...a) => (await getAdapter()).getResultsByAlumni(...a),
-  getResultById:     async (...a) => (await getAdapter()).getResultById(...a),
-  resolveResult:     async (...a) => (await getAdapter()).resolveResult(...a),
-  getAuditTrail:     async (...a) => (await getAdapter()).getAuditTrail(...a),
-  getTrackingStats:  async ()     => (await getAdapter()).getTrackingStats(),
+  getResultsByAlumni: async (...a) => (await getAdapter()).getResultsByAlumni(...a),
+  getResultById: async (...a) => (await getAdapter()).getResultById(...a),
+  resolveResult: async (...a) => (await getAdapter()).resolveResult(...a),
+  getAuditTrail: async (...a) => (await getAdapter()).getAuditTrail(...a),
+  getTrackingStats: async () => (await getAdapter()).getTrackingStats(),
 };

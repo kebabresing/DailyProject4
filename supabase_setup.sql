@@ -175,6 +175,27 @@ AS $$
 $$;
 
 
+-- ── 6. INDEX tempat_kerja (untuk RPC get_top_companies) ───────
+CREATE INDEX IF NOT EXISTS idx_alumni_tempat_kerja
+    ON alumniv2(tempat_kerja);
+
+-- ── 7. RPC: get_top_companies ─────────────────────────────────
+-- Top N perusahaan tempat alumni bekerja
+-- Dipanggil via: supabase.rpc('get_top_companies', { top_n: 10 })
+
+CREATE OR REPLACE FUNCTION get_top_companies(top_n INTEGER DEFAULT 10)
+RETURNS TABLE(tempat_kerja TEXT, count BIGINT)
+LANGUAGE SQL
+STABLE
+AS $$
+  SELECT tempat_kerja, COUNT(*) AS count
+  FROM alumniv2
+  WHERE tempat_kerja IS NOT NULL AND tempat_kerja <> ''
+  GROUP BY tempat_kerja
+  ORDER BY count DESC
+  LIMIT top_n;
+$$;
+
 
 -- ── Verifikasi: Cek semua index berhasil dibuat ──────────────
 SELECT indexname, tablename FROM pg_indexes

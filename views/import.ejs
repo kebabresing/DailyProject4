@@ -1,0 +1,180 @@
+<%- include('partials/header') %>
+
+<style>
+  .import-card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:20px; padding:28px 32px; backdrop-filter:blur(16px); }
+  .drop-zone { border:2px dashed rgba(99,102,241,.4); border-radius:16px; padding:48px 24px; text-align:center; cursor:pointer; transition:all .2s; background:rgba(99,102,241,.04); }
+  .drop-zone:hover, .drop-zone.drag { border-color:rgba(99,102,241,.8); background:rgba(99,102,241,.1); }
+  .drop-zone input[type=file] { display:none }
+  .btn-primary { background:linear-gradient(135deg,#4f46e5,#7c3aed); border:none; color:#fff; padding:11px 24px; border-radius:12px; font-weight:700; cursor:pointer; font-family:'Poppins',sans-serif; font-size:14px; transition:all .2s; box-shadow:0 4px 16px rgba(79,70,229,.35); }
+  .btn-primary:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(79,70,229,.5); }
+  .btn-danger { background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.3); color:#fca5a5; padding:10px 20px; border-radius:12px; font-weight:600; cursor:pointer; font-size:13px; transition:all .2s; }
+  .btn-danger:hover { background:rgba(239,68,68,.25); }
+  .btn-success { background:linear-gradient(135deg,#059669,#10b981); border:none; color:#fff; padding:11px 24px; border-radius:12px; font-weight:700; cursor:pointer; font-family:'Poppins',sans-serif; font-size:14px; transition:all .2s; }
+  .preview-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .preview-table th { background:rgba(79,70,229,.2); color:#a5b4fc; padding:10px 12px; text-align:left; font-weight:600; white-space:nowrap; }
+  .preview-table td { padding:8px 12px; border-bottom:1px solid rgba(255,255,255,.05); color:#cbd5e1; white-space:nowrap; }
+  .preview-table tr.has-error td { background:rgba(239,68,68,.08); }
+  .preview-table tr:hover td { background:rgba(255,255,255,.03); }
+  .err-badge { background:rgba(239,68,68,.15); color:#fca5a5; border:1px solid rgba(239,68,68,.3); border-radius:6px; padding:2px 8px; font-size:11px; font-weight:600; }
+  .step-bar { display:flex; gap:0; margin-bottom:32px; }
+  .step { flex:1; padding:12px 16px; font-size:13px; font-weight:600; color:var(--c-muted,#94a3b8); border-bottom:2px solid rgba(255,255,255,.1); text-align:center; }
+  .step.active { color:#818cf8; border-bottom-color:#6366f1; }
+  .step.done { color:#22c55e; border-bottom-color:#22c55e; }
+  .alert-box { padding:14px 18px; border-radius:12px; margin-bottom:24px; font-size:14px; font-weight:500; display:flex; align-items:center; gap:10px; }
+  .alert-success { background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.25); color:#86efac; }
+  .alert-error   { background:rgba(239,68,68,.1);  border:1px solid rgba(239,68,68,.25);  color:#fca5a5; }
+  .field-tag { display:inline-block; background:rgba(99,102,241,.15); border:1px solid rgba(99,102,241,.3); border-radius:6px; padding:2px 8px; font-size:11px; color:#a5b4fc; margin:2px; }
+</style>
+
+<div style="max-width:1100px;margin:0 auto">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px">
+    <div>
+      <h1 style="font-family:'Poppins',sans-serif;font-size:24px;font-weight:800;color:#fff;margin:0">📥 Import Data Alumni</h1>
+      <p style="color:#64748b;font-size:14px;margin:4px 0 0">Upload file CSV/Excel untuk menambahkan data alumni secara massal</p>
+    </div>
+    <a href="/data" style="color:#94a3b8;text-decoration:none;font-size:13px;display:flex;align-items:center;gap:6px">
+      ← Kembali ke Data Master
+    </a>
+  </div>
+
+  <!-- Alert -->
+  <% const alert = query?.alert || ''; %>
+  <% if (alert === 'import-success') { %>
+  <div class="alert-box alert-success">
+    ✅ Import berhasil! <strong><%= query.imported %></strong> alumni ditambahkan, <strong><%= query.skipped %></strong> baris dilewati.
+  </div>
+  <% } %>
+  <% if (alert === 'no-file') { %>
+  <div class="alert-box alert-error">⚠️ Tidak ada file yang dipilih.</div>
+  <% } %>
+  <% if (alert === 'no-data') { %>
+  <div class="alert-box alert-error">⚠️ Sesi preview telah kedaluwarsa. Silakan upload ulang.</div>
+  <% } %>
+
+  <!-- Step bar -->
+  <div class="step-bar">
+    <div class="step <%= preview ? 'done' : 'active' %>">① Upload File</div>
+    <div class="step <%= preview ? 'active' : '' %>">② Preview & Validasi</div>
+    <div class="step">③ Konfirmasi Import</div>
+  </div>
+
+  <% if (!preview) { %>
+  <!-- ── STEP 1: UPLOAD ── -->
+  <div class="import-card">
+    <h2 style="font-family:'Poppins',sans-serif;color:#fff;font-size:17px;margin:0 0 20px">Upload File</h2>
+
+    <form action="/import/preview" method="POST" enctype="multipart/form-data" id="uploadForm">
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" onchange="handleFile(this)">
+        <div style="font-size:40px;margin-bottom:12px">📂</div>
+        <div style="color:#fff;font-weight:700;font-size:16px;margin-bottom:8px" id="dropLabel">Klik atau drag & drop file di sini</div>
+        <div style="color:#64748b;font-size:13px">Format yang didukung: .xlsx, .xls, .csv — Maks 10 MB</div>
+        <div style="color:#818cf8;font-size:13px;margin-top:12px;display:none" id="fileName"></div>
+      </div>
+
+      <div style="margin-top:20px">
+        <p style="color:#64748b;font-size:13px;margin-bottom:10px">Kolom yang dikenali (minimal: <strong style="color:#a5b4fc">Nama Lulusan</strong>):</p>
+        <div>
+          <% ['Nama Lulusan','NIM','Tahun Masuk','Tanggal Lulus','Fakultas','Program Studi','Email','No HP','LinkedIn','Instagram','Facebook','TikTok','Tempat Kerja','Alamat Kerja','Posisi','Jenis Pekerjaan'].forEach(f => { %>
+          <span class="field-tag"><%= f %></span>
+          <% }) %>
+        </div>
+      </div>
+
+      <div style="margin-top:24px">
+        <button type="submit" class="btn-primary" id="uploadBtn" disabled>
+          🔍 Preview & Validasi
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <% } else { %>
+  <!-- ── STEP 2: PREVIEW ── -->
+  <div class="import-card" style="margin-bottom:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+      <div>
+        <h2 style="font-family:'Poppins',sans-serif;color:#fff;font-size:17px;margin:0">Preview Data</h2>
+        <p style="color:#64748b;font-size:13px;margin:4px 0 0">
+          Total <strong style="color:#fff"><%= totalRows %></strong> baris ditemukan
+          <% if (errors.length > 0) { %> · <strong style="color:#fca5a5"><%= errors.length %></strong> error ditemukan<% } %>
+          <% if (errors.length === 0) { %> · <span style="color:#86efac">✅ Tidak ada error</span><% } %>
+        </p>
+      </div>
+      <a href="/import" class="btn-danger">✕ Batal & Upload Ulang</a>
+    </div>
+
+    <!-- Error list -->
+    <% if (errors.length > 0) { %>
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:16px;margin-bottom:20px">
+      <p style="color:#fca5a5;font-weight:600;margin:0 0 10px">⚠️ Baris Bermasalah:</p>
+      <% errors.slice(0,10).forEach(e => { %>
+      <div style="font-size:12.5px;color:#fca5a5;margin:4px 0">Baris <%= e.row %> — <strong><%= e.field %></strong>: <%= e.msg %></div>
+      <% }) %>
+      <% if (errors.length > 10) { %><div style="font-size:12px;color:#64748b;margin-top:6px">...dan <%= errors.length - 10 %> error lainnya.</div><% } %>
+    </div>
+    <% } %>
+
+    <!-- Preview table -->
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid rgba(255,255,255,.07)">
+      <table class="preview-table">
+        <thead>
+          <tr><th>#</th><% columns.forEach(c => { %><th><%= c %></th><% }) %></tr>
+        </thead>
+        <tbody>
+          <% preview.forEach((row, i) => { %>
+          <tr><td style="color:#475569"><%= i + 1 %></td><% columns.forEach(c => { %><td><%= row[c] ?? '' %></td><% }) %></tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:#475569;font-size:12px;margin-top:10px">Menampilkan 20 baris pertama dari <%= totalRows %> baris total.</p>
+  </div>
+
+  <!-- Confirm button -->
+  <% if (errors.length === 0 || true) { %>
+  <div class="import-card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+    <div>
+      <p style="color:#fff;font-weight:600;margin:0">Siap mengimport <strong><%= totalRows %></strong> alumni?</p>
+      <p style="color:#64748b;font-size:13px;margin:4px 0 0">Status akan diklasifikasikan otomatis berdasarkan scoring kelengkapan data.</p>
+    </div>
+    <form action="/import/confirm" method="POST">
+      <button type="submit" class="btn-success" id="confirmBtn" onclick="this.innerHTML='⏳ Mengimport...';this.disabled=true">
+        ✅ Konfirmasi Import
+      </button>
+    </form>
+  </div>
+  <% } %>
+  <% } %>
+
+</div>
+
+<script>
+  function handleFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('fileName').textContent = '📄 ' + file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
+    document.getElementById('fileName').style.display = 'block';
+    document.getElementById('dropLabel').textContent = 'File dipilih';
+    document.getElementById('uploadBtn').disabled = false;
+  }
+  // Drag & drop
+  const dz = document.getElementById('dropZone');
+  if (dz) {
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+    dz.addEventListener('drop', e => {
+      e.preventDefault(); dz.classList.remove('drag');
+      const fi = document.getElementById('fileInput');
+      fi.files = e.dataTransfer.files;
+      handleFile(fi);
+    });
+  }
+  document.getElementById('uploadBtn')?.addEventListener('click', function() {
+    this.innerHTML = '⏳ Memproses...'; this.disabled = true;
+  });
+</script>
+
+<%- include('partials/footer') %>
