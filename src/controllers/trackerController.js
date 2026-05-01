@@ -2,34 +2,47 @@
  * Tracker Controller — Handler untuk modul intelligent tracking
  */
 
-const trackingDB = require('../config/trackingDB');
+const trackingDB  = require('../config/trackingDB');
 const { SOURCES, classifyLabel, buildSearchQueries } = require('../services/trackerEngine');
 const { startScheduler, stopScheduler, runManualTracking, getSchedulerState } = require('../services/trackerScheduler');
 const Alumni = require('../models/alumniModel');
 
-// ── GET /tracker — Dashboard utama ──
-exports.getDashboard = async (req, res) => {
+function isAdmin(req) { return req.session?.user?.role === 'admin'; }
+
+async function getPendingCount() {
   try {
     const stats = await trackingDB.getTrackingStats();
-    const pending = await trackingDB.getPendingResults(20);
-    const jobs = await trackingDB.getJobs(10);
-    const scheduler = getSchedulerState();
+    return stats.pendingResults || stats.pending_review || 0;
+  } catch { return 0; }
+}
 
-    // Enrich pending with classification labels
+// ── GET /tracker — Dashboard utama ──
+exports.getDashboard = async (req, res, next) => {
+  try {
+    const stats      = await trackingDB.getTrackingStats();
+    const pending    = await trackingDB.getPendingResults(20);
+    const jobs       = await trackingDB.getJobs(10);
+    const scheduler  = getSchedulerState();
+    const admin      = isAdmin(req);
+    const pCount     = await getPendingCount();
+
     const enrichedPending = pending.map(r => ({
       ...r,
       classificationLabel: classifyLabel(r.match_classification),
-      sourceIcon: SOURCES.find(s => s.id === r.source)?.icon || '🔍',
-      sourceName: SOURCES.find(s => s.id === r.source)?.name || r.source
+      sourceIcon: SOURCES.find(s => s.id === r.source)?.icon || '--',
+      sourceName: SOURCES.find(s => s.id === r.source)?.name || r.source,
     }));
 
     res.render('tracker', {
-      title: 'Intelligent Tracker — Monitoring Dashboard',
+      title: 'AI Tracker — Intelligence Dashboard',
       stats,
       pendingResults: enrichedPending,
       jobs,
       scheduler,
-      sources: SOURCES
+      sources: SOURCES,
+      isAdmin: admin,
+      pendingCount: pCount,
+      alertParam: req.query.alert || null,
     });
   } catch (err) {
     console.error('[Tracker] Dashboard error:', err);

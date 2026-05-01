@@ -17,11 +17,11 @@ const trackingDB = require('../config/trackingDB');
 
 // ── Sumber Data Publik Yang Valid ──
 const SOURCES = [
-  { id: 'linkedin',     name: 'LinkedIn',      baseUrl: 'https://www.linkedin.com/search/results/people/?keywords=', icon: '💼' },
-  { id: 'scholar',      name: 'Google Scholar', baseUrl: 'https://scholar.google.com/scholar?q=', icon: '📄' },
-  { id: 'researchgate', name: 'ResearchGate',   baseUrl: 'https://www.researchgate.net/search/researcher?q=', icon: '🔬' },
-  { id: 'instagram',    name: 'Instagram',      baseUrl: 'https://www.instagram.com/', icon: '📸' },
-  { id: 'facebook',     name: 'Facebook',       baseUrl: 'https://www.facebook.com/search/people/?q=', icon: '👤' }
+  { id: 'linkedin',     name: 'LinkedIn',       baseUrl: 'https://www.linkedin.com/search/results/people/?keywords=', icon: 'LI' },
+  { id: 'scholar',      name: 'Google Scholar', baseUrl: 'https://scholar.google.com/scholar?q=',                     icon: 'GS' },
+  { id: 'researchgate', name: 'ResearchGate',   baseUrl: 'https://www.researchgate.net/search/researcher?q=',        icon: 'RG' },
+  { id: 'instagram',    name: 'Instagram',      baseUrl: 'https://www.instagram.com/',                               icon: 'IG' },
+  { id: 'facebook',     name: 'Facebook',       baseUrl: 'https://www.facebook.com/search/people/?q=',              icon: 'FB' },
 ];
 
 // ── 1. Query Builder ──
@@ -362,59 +362,44 @@ function generateRealisticCompany(prodi) {
 async function runTracking(alumniList, triggeredBy = 'manual') {
   const job = await trackingDB.createJob(triggeredBy);
   const jobId = job.id;
-  
+
+  const { enrichBatch } = require('./enrichmentService');
+  const Alumni = require('../models/alumniModel');
   const allResults = [];
-  const { scrapeOSINT } = require('./osintScraper');
-  const Alumni = require('../models/alumniModel'); // Main database
-  
-  for (const alumni of alumniList) {
-    // Jalankan OSINT Scraper untuk mendapatkan 8 data komprehensif
-    const scrapedData = await scrapeOSINT(alumni.namaLengkap, alumni.kampus || 'Universitas Muhammadiyah Malang');
-    
-    // Update langsung ke database utama (Supabase/SQLite)
-    let hasNewData = false;
-    const updateData = { ...alumni };
-    const fields = ['linkedin', 'instagram', 'facebook', 'tiktok', 'email', 'noHp', 'tempatKerja', 'alamatKerja', 'posisi', 'jenisPekerjaan', 'sosmedTempatKerja'];
-    
-    fields.forEach(field => {
-      if (scrapedData[field] && !updateData[field]) {
-        updateData[field] = scrapedData[field];
-        hasNewData = true;
-      }
-    });
-    
+
+  // Run full enrichment pipeline (identity profile → queries → OSINT → scoring → output)
+  const enrichResults = await enrichBatch(alumniList);
+
+  for (const { alumni, enrichment, updatePayload, hasNewData } of enrichResults) {
+    if (!enrichment) continue;
+
+    // Apply non-destructive update to main DB
     if (hasNewData) {
-      updateData.status = 'Teridentifikasi dari Sumber Publik';
-      updateData.confidenceScore = Math.max(alumni.confidenceScore || 0, 85);
-      await Alumni.update(alumni.id, updateData);
+      await Alumni.update(alumni.id, updatePayload);
     }
 
-    // --- Pembuatan log audit untuk AI Tracker Dashboard ---
-    const queryGroups = buildSearchQueries(alumni);
-    const source = SOURCES[0]; // Gunakan LinkedIn sebagai sumber representatif utama untuk UI
-    const queryGroup = queryGroups.find(q => q.source === source.id);
-    
-    if (queryGroup) {
-      for (const q of queryGroup.queries) {
-        await trackingDB.saveQuery(jobId, alumni.id, alumni.namaLengkap, q, source.id);
-      }
+    // Save search queries to audit log
+    for (const q of enrichment.sources.slice(0, 3)) {
+      await trackingDB.saveQuery(jobId, alumni.id, alumni.namaLengkap, q.title, 'osint');
     }
 
+    // Build tracking result for evidence storage
     const trackingResult = {
       jobId,
-      alumniId: alumni.id,
-      alumniName: alumni.namaLengkap,
-      source: source.id,
-      sourceUrl: scrapedData.linkedin || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(alumni.namaLengkap)}`,
-      extractedName: alumni.namaLengkap,
-      extractedTitle: scrapedData.posisi || 'Alumni',
-      extractedCompany: scrapedData.tempatKerja || alumni.kampus,
-      extractedLocation: scrapedData.alamatKerja || 'Indonesia',
-      extractedActivity: 'Profil berhasil diidentifikasi otomatis melalui OSINT Scraper',
-      rawSnippet: `Nama: ${alumni.namaLengkap} - Posisi: ${scrapedData.posisi || '-'} di ${scrapedData.tempatKerja || '-'}`,
-      confidenceScore: 90, // Tinggi karena OSINT Scraper
-      matchClassification: 'high',
-      crossValidated: true
+      alumniId:            alumni.id,
+      alumniName:          alumni.namaLengkap,
+      source:              'linkedin',
+      sourceUrl:           enrichment.social_media.find(s => s.platform === 'LinkedIn')?.url
+                           || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(alumni.namaLengkap)}`,
+      extractedName:       enrichment.name,
+      extractedTitle:      enrichment.job_title,
+      extractedCompany:    enrichment.company,
+      extractedLocation:   enrichment.location,
+      extractedActivity:   enrichment.activity,
+      rawSnippet:          `${enrichment.job_title || '-'} @ ${enrichment.company || '-'} | Score: ${enrichment.confidence_score}% | ${enrichment.classification_label}`,
+      confidenceScore:     enrichment.confidence_score,
+      matchClassification: enrichment.classification,
+      crossValidated:      enrichment.confidence_score >= 70,
     };
 
     allResults.push(trackingResult);
@@ -425,9 +410,9 @@ async function runTracking(alumniList, triggeredBy = 'manual') {
 
   return {
     jobId,
-    totalAlumni: alumniList.length,
+    totalAlumni:  alumniList.length,
     totalResults: allResults.length,
-    results: allResults
+    results:      allResults,
   };
 }
 
