@@ -1,29 +1,20 @@
-const express = require('express');
-const router = express.Router();
-const tracker = require('../controllers/trackerController');
+'use strict';
+
+const express  = require('express');
+const router   = express.Router();
+const tracker  = require('../controllers/trackerController');
 const { requireLogin, requireAdmin } = require('../middleware/auth');
 
-// Dashboard — all logged-in users can view
-router.get('/tracker', requireLogin, tracker.getDashboard);
+// ── Tracker Dashboard ────────────────────────────────────────
+router.get('/tracker',        requireLogin,              tracker.getDashboard);
+router.post('/tracker/start', requireLogin, requireAdmin, tracker.startTracker);
+router.post('/tracker/stop',  requireLogin, requireAdmin, tracker.stopTracker);
+router.get('/tracker/status', requireLogin,              tracker.getStatus);
 
-// Manual scan — admin only
-router.post('/tracker/run', requireLogin, requireAdmin, tracker.triggerScan);
-
-// Scheduler control — admin only
-router.post('/tracker/scheduler/start', requireLogin, requireAdmin, tracker.startScheduler);
-router.post('/tracker/scheduler/stop',  requireLogin, requireAdmin, tracker.stopScheduler);
-
-// Results & detail — all logged-in users
-router.get('/tracker/results/:alumniId', requireLogin, tracker.getAlumniResults);
-
-// Approve / Reject — admin only
-router.post('/tracker/approve/:id', requireLogin, requireAdmin, tracker.approveResult);
-router.post('/tracker/reject/:id',  requireLogin, requireAdmin, tracker.rejectResult);
-
-// Audit trail — all logged-in users
-router.get('/tracker/audit', requireLogin, tracker.getAudit);
-
-// Job queries — all logged-in users
-router.get('/tracker/queries/:jobId', requireLogin, tracker.getJobQueries);
+// ── Staging Area (Verifikasi Manual 40–69%) ──────────────────
+router.get('/staging',             requireLogin, requireAdmin, tracker.getStagingPage);
+router.get('/staging/data',        requireLogin, requireAdmin, tracker.getStagingData);
+router.post('/staging/:id/approve', requireLogin, requireAdmin, tracker.approveStaging);
+router.post('/staging/:id/reject',  requireLogin, requireAdmin, tracker.rejectStaging);
 
 module.exports = router;

@@ -17,8 +17,14 @@ function invalidateStatsCache() { _statsCache = null; _statsCacheTime = 0; }
 
 // ── Pending count (sidebar badge) — cached alongside stats ────────────────
 async function getPendingCount() {
-  const stats = await getCachedStats();
-  return stats.perluVerifikasi || 0;
+  try {
+    const trackingDB = require('../config/trackingDB');
+    const trackingStats = await trackingDB.getTrackingStats();
+    return trackingStats.pendingResults || 0;
+  } catch (err) {
+    const stats = await getCachedStats();
+    return stats.perluVerifikasi || 0;
+  }
 }
 
 const JENIS_OPTIONS  = ['PNS', 'Swasta', 'BUMN', 'Wirausaha', 'Freelance'];
@@ -192,13 +198,22 @@ exports.exportExcel = async (req, res, next) => {
 // ── GET /pipeline ─────────────────────────────────────────────────────────
 exports.getPipeline = async (req, res, next) => {
   try {
-    const fullList = await Alumni.getAll();
-    const pendingAlumni = fullList.filter(a =>
-      a.status === 'Perlu Verifikasi Manual' ||
-      (a.confidenceScore < 70 && a.status !== 'Belum Ditemukan di Sumber Publik')
-    );
-    const pendingCount = pendingAlumni.length;
-    res.render('pipeline', { title: 'Data Scraping & Verification Pipeline', pendingAlumni, pendingCount });
+    const trackingDB = require('../config/trackingDB');
+    const [trackingStats, pendingResults] = await Promise.all([
+      trackingDB.getTrackingStats().catch(() => ({})),
+      trackingDB.getPendingResults(50).catch(() => []),
+    ]);
+    
+    // Fallback if pendingCount in header relies on it
+    const pendingCount = trackingStats.pendingResults || 0;
+    
+    res.render('pipeline', { 
+      title: 'Antrian Verifikasi Pipeline', 
+      trackingStats,
+      pendingResults,
+      pendingCount,
+      isAdmin: isAdmin(req)
+    });
   } catch (err) { next(err); }
 };
 
@@ -414,3 +429,6 @@ exports.bulkScrape = async (req, res, next) => {
     }
   })();
 };
+
+exports.invalidateStatsCache = invalidateStatsCache;
+

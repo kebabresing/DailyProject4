@@ -1,427 +1,172 @@
+'use strict';
+
 /**
- * Tracker Engine — Intelligent Alumni Tracking Core
- * 
- * Modul ini berisi logika inti pelacakan: query builder, scoring, disambiguasi,
- * cross-validation, dan evidence builder. Menggunakan data alumni yang sudah ada
- * sebagai sumber utama — tidak membuat data palsu.
- * 
- * Sumber yang dilacak:
- * - LinkedIn (public profile search)
- * - Google Scholar (academic publications)
- * - ResearchGate (research profiles)
- * - Instagram (public profiles)
- * - Facebook (public profiles)
+ * trackerEngine.js — Intelligent Alumni Tracking Core (v2)
+ *
+ * Mengorkestra pipeline lengkap:
+ *  1. Ambil data alumni dari DB
+ *  2. Jalankan enrichment (scrape + scoring)
+ *  3. Auto-approve ke tabel utama Supabase jika score >= 70%
+ *  4. Simpan ke staging (tracking_results) jika 40–69% — tunggu verifikasi admin
+ *  5. Catat audit trail ke tracking_jobs & tracking_queries
  */
 
 const trackingDB = require('../config/trackingDB');
 
-// ── Sumber Data Publik Yang Valid ──
-const SOURCES = [
-  { id: 'linkedin',     name: 'LinkedIn',       baseUrl: 'https://www.linkedin.com/search/results/people/?keywords=', icon: 'LI' },
-  { id: 'scholar',      name: 'Google Scholar', baseUrl: 'https://scholar.google.com/scholar?q=',                     icon: 'GS' },
-  { id: 'researchgate', name: 'ResearchGate',   baseUrl: 'https://www.researchgate.net/search/researcher?q=',        icon: 'RG' },
-  { id: 'instagram',    name: 'Instagram',      baseUrl: 'https://www.instagram.com/',                               icon: 'IG' },
-  { id: 'facebook',     name: 'Facebook',       baseUrl: 'https://www.facebook.com/search/people/?q=',              icon: 'FB' },
-];
+// ─────────────────────────────────────────────────────────────
+// SCORING HELPERS (mirror dari enrichmentService untuk standalone use)
+// ─────────────────────────────────────────────────────────────
 
-// ── 1. Query Builder ──
-// Membuat variasi pencarian berdasarkan data alumni yang sudah ada
-
-function buildSearchQueries(alumni) {
-  const name = alumni.namaLengkap || '';
-  const prodi = alumni.prodi || '';
-  const kampus = alumni.kampus || 'Universitas Muhammadiyah Malang';
-  const tahun = alumni.tahunLulus || '';
-  const fakultas = alumni.fakultas || '';
-
-  // Variasi nama
-  const nameParts = name.trim().split(/\s+/);
-  const nameVariations = [name];
-  if (nameParts.length >= 3) {
-    nameVariations.push(`${nameParts[0]} ${nameParts[nameParts.length - 1]}`); // first + last
-  }
-
-  const queries = [];
-
-  for (const source of SOURCES) {
-    const sourceQueries = [];
-
-    // Query utama: nama + kampus
-    sourceQueries.push(`"${name}" "${kampus}"`);
-
-    // Query dengan prodi
-    if (prodi) {
-      sourceQueries.push(`"${name}" "${prodi}"`);
-    }
-
-    // Query dengan tahun + kampus
-    if (tahun) {
-      sourceQueries.push(`"${name}" alumni ${tahun}`);
-    }
-
-    // Untuk LinkedIn: query lebih spesifik
-    if (source.id === 'linkedin') {
-      sourceQueries.push(`"${name}" ${prodi ? prodi : ''} Malang`);
-    }
-
-    // Untuk Scholar: fokus nama + afiliasi
-    if (source.id === 'scholar') {
-      sourceQueries.push(`author:"${name}" ${kampus}`);
-      if (fakultas) {
-        sourceQueries.push(`"${name}" "${fakultas}" UMM`);
-      }
-    }
-
-    // Variasi nama pendek (first + last)
-    if (nameVariations.length > 1) {
-      sourceQueries.push(`"${nameVariations[1]}" ${kampus}`);
-    }
-
-    queries.push({
-      source: source.id,
-      sourceName: source.name,
-      queries: [...new Set(sourceQueries)], // deduplicate
-      searchUrls: [...new Set(sourceQueries)].map(q => source.baseUrl + encodeURIComponent(q))
-    });
-  }
-
-  return queries;
-}
-
-// ── 2. Scoring Engine ──
-// Menghitung confidence score berdasarkan kecocokan data
-
-function calculateConfidence(alumni, extractedData) {
-  let score = 0;
-  const breakdown = [];
-
-  // Nama cocok (bobot tertinggi)
-  const nameScore = calculateNameSimilarity(alumni.namaLengkap, extractedData.name);
-  score += nameScore * 35; // max 35
-  breakdown.push({ factor: 'Name Match', score: Math.round(nameScore * 35), max: 35 });
-
-  // Institusi/kampus cocok
-  const eduScore = calculateTextSimilarity(
-    alumni.kampus || '',
-    extractedData.company || extractedData.activity || ''
-  );
-  score += eduScore * 20; // max 20
-  breakdown.push({ factor: 'Education/Affiliation', score: Math.round(eduScore * 20), max: 20 });
-
-  // Prodi/bidang cocok
-  const fieldScore = calculateTextSimilarity(
-    alumni.prodi || '',
-    extractedData.title || extractedData.activity || ''
-  );
-  score += fieldScore * 15; // max 15
-  breakdown.push({ factor: 'Field/Program Match', score: Math.round(fieldScore * 15), max: 15 });
-
-  // Lokasi cocok (Malang, Jawa Timur)
-  const locationKeywords = ['malang', 'jawa timur', 'east java', 'indonesia'];
-  const hasLocation = locationKeywords.some(kw =>
-    (extractedData.location || '').toLowerCase().includes(kw)
-  );
-  if (hasLocation) {
-    score += 15;
-    breakdown.push({ factor: 'Location Match', score: 15, max: 15 });
-  } else {
-    breakdown.push({ factor: 'Location Match', score: 0, max: 15 });
-  }
-
-  // Profil pekerjaan konsisten
-  if (extractedData.title && alumni.posisi) {
-    const jobScore = calculateTextSimilarity(alumni.posisi, extractedData.title);
-    score += jobScore * 10;
-    breakdown.push({ factor: 'Job Title Match', score: Math.round(jobScore * 10), max: 10 });
-  } else {
-    breakdown.push({ factor: 'Job Title Match', score: 0, max: 10 });
-  }
-
-  // Aktivitas terbaru (bonus)
-  if (extractedData.activity) {
-    score += 5;
-    breakdown.push({ factor: 'Recent Activity', score: 5, max: 5 });
-  } else {
-    breakdown.push({ factor: 'Recent Activity', score: 0, max: 5 });
-  }
-
-  return {
-    totalScore: Math.min(Math.round(score), 100),
-    breakdown
-  };
-}
-
-function calculateNameSimilarity(name1, name2) {
-  if (!name1 || !name2) return 0;
-  const a = name1.toLowerCase().trim();
-  const b = name2.toLowerCase().trim();
-  if (a === b) return 1.0;
-  
-  // Check if one contains the other
-  if (a.includes(b) || b.includes(a)) return 0.85;
-  
-  // Token-based similarity
-  const tokensA = new Set(a.split(/\s+/));
-  const tokensB = new Set(b.split(/\s+/));
-  const intersection = new Set([...tokensA].filter(x => tokensB.has(x)));
-  const union = new Set([...tokensA, ...tokensB]);
-  const jaccard = intersection.size / union.size;
-  
-  return jaccard;
-}
-
-function calculateTextSimilarity(text1, text2) {
-  if (!text1 || !text2) return 0;
-  const a = text1.toLowerCase();
-  const b = text2.toLowerCase();
-  if (a === b) return 1.0;
-  if (a.includes(b) || b.includes(a)) return 0.7;
-
-  const tokensA = new Set(a.split(/\s+/));
-  const tokensB = new Set(b.split(/\s+/));
-  const intersection = new Set([...tokensA].filter(x => tokensB.has(x)));
-  return intersection.size / Math.max(tokensA.size, tokensB.size);
-}
-
-// ── 3. Disambiguator ──
-// Mengklasifikasikan hasil: strong_match, needs_verification, no_match
-
-function classifyMatch(confidenceScore) {
-  if (confidenceScore >= 70) return 'strong_match';
-  if (confidenceScore >= 40) return 'needs_verification';
+function classifyMatch(score) {
+  if (score >= 70) return 'strong_match';
+  if (score >= 40) return 'needs_verification';
   return 'no_match';
 }
 
-function classifyLabel(classification) {
-  switch (classification) {
-    case 'strong_match': return 'Kemungkinan Kuat';
-    case 'needs_verification': return 'Perlu Verifikasi Manual';
-    case 'no_match': return 'Tidak Cocok';
-    default: return classification;
-  }
+function classifyLabel(c) {
+  return c === 'strong_match'       ? 'Kemungkinan Kuat'
+       : c === 'needs_verification' ? 'Perlu Verifikasi Manual'
+       : 'Tidak Cocok';
 }
 
-// ── 4. Cross-Validation ──
-// Membandingkan hasil antar sumber untuk meningkatkan akurasi
+// ─────────────────────────────────────────────────────────────
+// MAIN TRACKING FUNCTION
+// Proses satu batch alumni dan simpan hasilnya ke DB
+// ─────────────────────────────────────────────────────────────
 
-function crossValidate(results) {
-  // Group results by alumni
-  const byAlumni = {};
-  for (const r of results) {
-    if (!byAlumni[r.alumniId]) byAlumni[r.alumniId] = [];
-    byAlumni[r.alumniId].push(r);
-  }
-
-  for (const alumniId of Object.keys(byAlumni)) {
-    const group = byAlumni[alumniId];
-    if (group.length < 2) continue;
-
-    // Check if multiple sources agree on name + company
-    const names = group.map(r => (r.extractedName || '').toLowerCase()).filter(Boolean);
-    const companies = group.map(r => (r.extractedCompany || '').toLowerCase()).filter(Boolean);
-
-    for (const result of group) {
-      let crossCount = 0;
-      
-      // Name appears in multiple sources
-      if (result.extractedName) {
-        const matchingNames = names.filter(n => 
-          calculateNameSimilarity(n, result.extractedName) > 0.6
-        );
-        if (matchingNames.length >= 2) crossCount++;
-      }
-
-      // Company appears in multiple sources
-      if (result.extractedCompany) {
-        const matchingCompanies = companies.filter(c =>
-          calculateTextSimilarity(c, result.extractedCompany) > 0.5
-        );
-        if (matchingCompanies.length >= 2) crossCount++;
-      }
-
-      if (crossCount > 0) {
-        result.crossValidated = true;
-        // Boost confidence by 10% for cross-validated results
-        result.confidenceScore = Math.min(result.confidenceScore + 10, 100);
-        result.matchClassification = classifyMatch(result.confidenceScore);
-      }
-    }
-  }
-
-  return results;
-}
-
-// ── 5. Simulasi Pelacakan Realistis ──
-// Menggunakan data alumni yang sudah ada untuk mensimulasikan pencarian di sumber publik.
-// TIDAK menggunakan data palsu — semua data berasal dari alumni yang sudah teregistrasi.
-
-function simulatePublicSearch(alumni, source) {
-  const name = alumni.namaLengkap || 'Unknown';
-  const prodi = alumni.prodi || '';
-  const kampus = alumni.kampus || 'UMM';
-  const tahun = alumni.tahunLulus || 2020;
-
-  // Construct realistic extracted data based on what's already known
-  const result = {
-    alumniId: alumni.id,
-    alumniName: name,
-    source: source.id,
-    sourceUrl: `${source.baseUrl}${encodeURIComponent(name)}`,
-    extractedName: name,
-    extractedTitle: null,
-    extractedCompany: null,
-    extractedLocation: null,
-    extractedActivity: null,
-    rawSnippet: ''
-  };
-
-  // Use existing data to create realistic results
-  switch (source.id) {
-    case 'linkedin':
-      result.extractedTitle = alumni.posisi || generateRealisticTitle(prodi);
-      result.extractedCompany = alumni.tempatKerja || generateRealisticCompany(prodi);
-      result.extractedLocation = alumni.alamatKerja || 'Malang, Jawa Timur, Indonesia';
-      result.extractedActivity = `Alumni ${kampus} (${tahun}) • ${prodi}`;
-      result.rawSnippet = `${name} - ${result.extractedTitle} at ${result.extractedCompany} | ${kampus} alumni | ${prodi}`;
-      result.sourceUrl = alumni.linkedin || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(name + ' ' + kampus)}`;
-      break;
-
-    case 'scholar':
-      result.extractedTitle = `Researcher / ${prodi}`;
-      result.extractedCompany = kampus;
-      result.extractedLocation = 'Malang, Indonesia';
-      result.extractedActivity = `Published research from ${kampus}, Department of ${prodi}`;
-      result.rawSnippet = `${name} - ${kampus}, ${prodi}. Research publications indexed on Google Scholar.`;
-      result.sourceUrl = `https://scholar.google.com/scholar?q=author:"${encodeURIComponent(name)}"+${encodeURIComponent(kampus)}`;
-      break;
-
-    case 'researchgate':
-      result.extractedTitle = `${prodi} Researcher`;
-      result.extractedCompany = kampus;
-      result.extractedLocation = 'Malang, Indonesia';
-      result.extractedActivity = `Research profile affiliated with ${kampus}`;
-      result.rawSnippet = `${name} - ResearchGate profile. Affiliated with ${kampus}, Department of ${prodi}.`;
-      result.sourceUrl = `https://www.researchgate.net/search/researcher?q=${encodeURIComponent(name)}`;
-      break;
-
-    case 'instagram':
-      result.extractedTitle = alumni.posisi || 'Personal Account';
-      result.extractedCompany = alumni.tempatKerja || null;
-      result.extractedLocation = alumni.alamatKerja || 'Indonesia';
-      result.extractedActivity = `Bio mentions: ${kampus} '${String(tahun).slice(-2)}`;
-      result.rawSnippet = `@${name.toLowerCase().replace(/\s+/g, '')} - ${kampus} ${tahun} • ${prodi}`;
-      result.sourceUrl = alumni.instagram ? `https://www.instagram.com/${alumni.instagram.replace('@', '')}` : `https://www.instagram.com/explore/tags/${encodeURIComponent(name.replace(/\s+/g, ''))}`;
-      break;
-
-    case 'facebook':
-      result.extractedTitle = alumni.posisi || null;
-      result.extractedCompany = alumni.tempatKerja || null;
-      result.extractedLocation = alumni.alamatKerja || 'Indonesia';
-      result.extractedActivity = `Studied at ${kampus} (${tahun})`;
-      result.rawSnippet = `${name} - Went to ${kampus}. ${alumni.tempatKerja ? 'Works at ' + alumni.tempatKerja : ''}`;
-      result.sourceUrl = alumni.facebook || `https://www.facebook.com/search/people/?q=${encodeURIComponent(name + ' ' + kampus)}`;
-      break;
-  }
-
-  return result;
-}
-
-function generateRealisticTitle(prodi) {
-  const titles = {
-    'Informatika': ['Software Engineer', 'Web Developer', 'Data Analyst', 'IT Consultant', 'System Administrator'],
-    'Teknik': ['Project Engineer', 'Quality Assurance', 'Technical Lead', 'Process Engineer'],
-    'Ekonomi': ['Financial Analyst', 'Accounting Staff', 'Business Development', 'Marketing Executive'],
-    'Hukum': ['Legal Staff', 'Corporate Legal', 'Paralegal', 'Legal Consultant'],
-    'Kedokteran': ['Dokter Umum', 'Resident Doctor', 'Medical Staff', 'Healthcare Professional'],
-    'default': ['Professional', 'Staff', 'Analyst', 'Consultant', 'Specialist']
-  };
-
-  const key = Object.keys(titles).find(k => prodi.toLowerCase().includes(k.toLowerCase()));
-  const pool = titles[key] || titles['default'];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-function generateRealisticCompany(prodi) {
-  const companies = {
-    'Informatika': ['PT Telkom Indonesia', 'Tokopedia', 'Gojek', 'Tiket.com', 'PT Merpati Nusantara', 'Startup Malang'],
-    'Teknik': ['PT Semen Gresik', 'PT PLN', 'PT Pertamina', 'PT Astra International'],
-    'Ekonomi': ['Bank BRI', 'Bank Mandiri', 'PwC Indonesia', 'Deloitte Indonesia', 'KPMG'],
-    'Hukum': ['Kantor Hukum Jakarta', 'Kejaksaan RI', 'Pengadilan Negeri', 'Notaris & PPAT'],
-    'Kedokteran': ['RSUD dr. Saiful Anwar', 'RS UMM', 'Puskesmas Kota Malang', 'Klinik Pratama'],
-    'default': ['PT Nusantara Group', 'Koperasi Jaya', 'CV Mitra Utama', 'Dinas Kota Malang']
-  };
-
-  const key = Object.keys(companies).find(k => prodi.toLowerCase().includes(k.toLowerCase()));
-  const pool = companies[key] || companies['default'];
-  return pool[Math.floor(Math.random() * pool.length)];
-}
-
-// ── 6. Main Tracking Function ──
-// Orchestrates the full pipeline for a batch of alumni
-
+/**
+ * Jalankan tracking untuk batch alumni.
+ *
+ * @param {Array}  alumniList   — Array record alumni (camelCase dari DB)
+ * @param {string} triggeredBy — 'manual' | 'scheduler' | 'api'
+ * @returns {object}           — { jobId, totalAlumni, totalResults, autoApproved, stagingCount }
+ */
 async function runTracking(alumniList, triggeredBy = 'manual') {
-  const job = await trackingDB.createJob(triggeredBy);
-  const jobId = job.id;
+  if (!alumniList || alumniList.length === 0) {
+    return { jobId: null, totalAlumni: 0, totalResults: 0, autoApproved: 0, stagingCount: 0 };
+  }
 
-  const { enrichBatch } = require('./enrichmentService');
+  // Lazy-load untuk menghindari circular dependency
+  const { enrichBatch, autoUpdateToSupabase } = require('./enrichmentService');
   const Alumni = require('../models/alumniModel');
+
+  // Buat tracking job
+  let jobId = null;
+  try {
+    const job = await trackingDB.createJob(triggeredBy);
+    jobId = job.id;
+  } catch (err) {
+    console.warn(`[Engine] Tidak bisa buat tracking job: ${err.message}`);
+  }
+
+  let autoApproved = 0;
+  let stagingCount = 0;
   const allResults = [];
 
-  // Run full enrichment pipeline (identity profile → queries → OSINT → scoring → output)
+  // Jalankan enrichment batch (concurrent, rate-limited di dalam enrichBatch)
   const enrichResults = await enrichBatch(alumniList);
 
-  for (const { alumni, enrichment, updatePayload, hasNewData } of enrichResults) {
-    if (!enrichment) continue;
+  for (const { alumni, enrichment, updatePayload, hasNewData, error } of enrichResults) {
+    if (error || !enrichment) continue;
 
-    // Apply non-destructive update to main DB
-    if (hasNewData) {
-      await Alumni.update(alumni.id, updatePayload);
+    const score          = enrichment.confidence_score;
+    const classification = enrichment.classification;
+
+    // ── Simpan query ke audit log ──
+    if (jobId) {
+      for (const src of enrichment.sources.slice(0, 3)) {
+        try {
+          await trackingDB.saveQuery(jobId, alumni.id, alumni.namaLengkap, src.snippet || src.title, 'osint');
+        } catch (_) { /* non-critical */ }
+      }
     }
 
-    // Save search queries to audit log
-    for (const q of enrichment.sources.slice(0, 3)) {
-      await trackingDB.saveQuery(jobId, alumni.id, alumni.namaLengkap, q.title, 'osint');
-    }
-
-    // Build tracking result for evidence storage
+    // ── Buat tracking result object ──
     const trackingResult = {
       jobId,
-      alumniId:            alumni.id,
-      alumniName:          alumni.namaLengkap,
-      source:              'linkedin',
-      sourceUrl:           enrichment.social_media.find(s => s.platform === 'LinkedIn')?.url
-                           || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(alumni.namaLengkap)}`,
-      extractedName:       enrichment.name,
-      extractedTitle:      enrichment.job_title,
-      extractedCompany:    enrichment.company,
-      extractedLocation:   enrichment.location,
-      extractedActivity:   enrichment.activity,
-      rawSnippet:          `${enrichment.job_title || '-'} @ ${enrichment.company || '-'} | Score: ${enrichment.confidence_score}% | ${enrichment.classification_label}`,
-      confidenceScore:     enrichment.confidence_score,
-      matchClassification: enrichment.classification,
-      crossValidated:      enrichment.confidence_score >= 70,
+      alumniId:             alumni.id,
+      alumniName:           alumni.namaLengkap,
+      source:               'osint',
+      sourceUrl:            enrichment.social_media.find(s => s.platform === 'LinkedIn')?.url
+                            || `https://www.linkedin.com/search/results/people/?keywords=${encodeURIComponent(alumni.namaLengkap)}`,
+      extractedName:        enrichment.name,
+      extractedTitle:       enrichment.job_title,
+      extractedCompany:     enrichment.company,
+      extractedLocation:    enrichment.work_address,
+      extractedActivity:    enrichment.activity,
+      rawSnippet:           `${enrichment.job_title || '-'} @ ${enrichment.company || '-'} | Score: ${score}% | ${classifyLabel(classification)}`,
+      confidenceScore:      score,
+      matchClassification:  classification,
+      crossValidated:       score >= 70,
+      adminAction:          score >= 70 ? 'approved' : null,
+      adminNote:            score >= 70 ? `Auto-approved (score: ${score}%)` : null,
+      resolvedAt:           score >= 70 ? new Date().toISOString() : null,
     };
 
     allResults.push(trackingResult);
-    await trackingDB.saveResult(trackingResult);
+
+    // ── Simpan ke staging ──
+    let savedId = null;
+    try {
+      const saved = await trackingDB.saveResult(trackingResult);
+      savedId = saved?.id;
+    } catch (e) {
+      console.warn(`[Engine] Gagal simpan staging result: ${e.message}`);
+    }
+
+    // ── AUTO-APPROVE: score >= 70% → update tabel utama Supabase ──
+    if (score >= 70) {
+      try {
+        await autoUpdateToSupabase(alumni, enrichment);
+        autoApproved++;
+      } catch (e) {
+        console.error(`[Engine] autoUpdateToSupabase gagal: ${e.message}`);
+        // Fallback: update via model
+        try {
+          await Alumni.update(alumni.id, updatePayload);
+        } catch (_) {}
+      }
+      // Resolve staging record
+      if (savedId) {
+        try { await trackingDB.resolveResult(savedId, 'approved', 'Auto-approved by Intelligent Tracker'); } catch (_) {}
+      }
+
+    // ── STAGING: score 40–69% → masuk antrean verifikasi admin ──
+    } else if (score >= 40) {
+      try {
+        await Alumni.update(alumni.id, {
+          ...alumni,
+          status:          'Perlu Verifikasi Manual',
+          confidenceScore: score,
+        });
+      } catch (e) {
+        console.warn(`[Engine] Update status staging gagal: ${e.message}`);
+      }
+      stagingCount++;
+    }
+    // score < 40 → tidak ada aksi, data tidak diubah
   }
 
-  await trackingDB.finishJob(jobId, alumniList.length, allResults.length);
+  // Selesaikan tracking job
+  if (jobId) {
+    try {
+      await trackingDB.finishJob(jobId, alumniList.length, allResults.length);
+    } catch (_) {}
+  }
+
+  console.log(`[Engine] Job ${jobId} selesai — alumni: ${alumniList.length}, auto-approved: ${autoApproved}, staging: ${stagingCount}`);
 
   return {
     jobId,
     totalAlumni:  alumniList.length,
     totalResults: allResults.length,
-    results:      allResults,
+    autoApproved,
+    stagingCount,
   };
 }
 
 module.exports = {
-  SOURCES,
-  buildSearchQueries,
-  calculateConfidence,
   classifyMatch,
   classifyLabel,
-  crossValidate,
-  runTracking
+  runTracking,
 };

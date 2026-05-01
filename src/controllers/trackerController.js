@@ -1,224 +1,195 @@
+'use strict';
+
 /**
- * Tracker Controller — Handler untuk modul intelligent tracking
+ * trackerController.js — Handler Modul Intelligent Tracker (v2)
+ *
+ * Routes:
+ *   GET  /tracker              → Dashboard tracker + status worker
+ *   POST /tracker/start        → Mulai batch massal (max 1000)
+ *   POST /tracker/stop         → Hentikan/kosongkan queue
+ *   GET  /tracker/status       → JSON status (untuk polling JS)
+ *   GET  /staging              → Halaman verifikasi data 40–69%
+ *   GET  /staging/data         → JSON list staging (untuk AJAX)
+ *   POST /staging/:id/approve  → Approve satu staging result (AJAX)
+ *   POST /staging/:id/reject   → Reject satu staging result (AJAX)
  */
 
-const trackingDB  = require('../config/trackingDB');
-const { SOURCES, classifyLabel, buildSearchQueries } = require('../services/trackerEngine');
-const { startScheduler, stopScheduler, runManualTracking, getSchedulerState } = require('../services/trackerScheduler');
-const Alumni = require('../models/alumniModel');
+const scheduler  = require('../services/trackerScheduler');
+const trackingDB = require('../config/trackingDB');
+const Alumni     = require('../models/alumniModel');
 
-function isAdmin(req) { return req.session?.user?.role === 'admin'; }
+// ─────────────────────────────────────────────────────────────
+// GET /tracker — Dashboard
+// ─────────────────────────────────────────────────────────────
 
-async function getPendingCount() {
-  try {
-    const stats = await trackingDB.getTrackingStats();
-    return stats.pendingResults || stats.pending_review || 0;
-  } catch { return 0; }
-}
-
-// ── GET /tracker — Dashboard utama ──
 exports.getDashboard = async (req, res, next) => {
   try {
-    const stats      = await trackingDB.getTrackingStats();
-    const pending    = await trackingDB.getPendingResults(20);
-    const jobs       = await trackingDB.getJobs(10);
-    const scheduler  = getSchedulerState();
-    const admin      = isAdmin(req);
-    const pCount     = await getPendingCount();
-
-    const enrichedPending = pending.map(r => ({
-      ...r,
-      classificationLabel: classifyLabel(r.match_classification),
-      sourceIcon: SOURCES.find(s => s.id === r.source)?.icon || '--',
-      sourceName: SOURCES.find(s => s.id === r.source)?.name || r.source,
-    }));
+    const [stats, trackingStats, workerStatus] = await Promise.all([
+      Alumni.getStats(),
+      trackingDB.getTrackingStats().catch(() => ({})),
+      Promise.resolve(scheduler.getStatus()),
+    ]);
 
     res.render('tracker', {
-      title: 'AI Tracker — Intelligence Dashboard',
+      title:         'Intelligent Tracker — Pelacakan Alumni',
       stats,
-      pendingResults: enrichedPending,
-      jobs,
-      scheduler,
-      sources: SOURCES,
-      isAdmin: admin,
-      pendingCount: pCount,
-      alertParam: req.query.alert || null,
+      trackingStats,
+      workerStatus,
+      isAdmin:       req.session?.user?.role === 'admin',
+      alertParam:    req.query.alert || null,
+      osintMode:     process.env.OSINT_MODE || 'simulation',
     });
   } catch (err) {
-    console.error('[Tracker] Dashboard error:', err);
+    console.error('[TrackerCtrl] Dashboard error:', err.message);
     next(err);
   }
 };
 
-// ── POST /tracker/run — Trigger manual scan ──
-exports.triggerScan = async (req, res) => {
+// ─────────────────────────────────────────────────────────────
+// POST /tracker/start — Mulai batch massal
+// ─────────────────────────────────────────────────────────────
+
+exports.startTracker = async (req, res) => {
   try {
-    const batchSize = parseInt(req.body.batchSize) || 10;
-    const result = await runManualTracking(batchSize);
-    
+    const batchSize = Math.min(parseInt(req.body.batchSize) || 1000, 1000);
+    const result    = await scheduler.runManualTracking(batchSize);
+
     if (result.error) {
-      return res.redirect('/tracker?alert=no-data');
+      console.warn('[TrackerCtrl] Start blocked:', result.error);
+      return res.redirect('/tracker?alert=already-running');
     }
 
-    res.redirect(`/tracker?alert=scan-complete&jobId=${result.jobId}&total=${result.totalResults}`);
+    console.log(`[TrackerCtrl] Tracker dimulai: ${result.totalQueued} alumni di-enqueue`);
+    res.redirect(`/tracker?alert=started&total=${result.totalQueued}`);
   } catch (err) {
-    console.error('[Tracker] Manual scan error:', err);
-    res.redirect('/tracker?alert=scan-error');
+    console.error('[TrackerCtrl] Start error:', err.message);
+    res.redirect('/tracker?alert=error');
   }
 };
 
-// ── POST /tracker/scheduler/start — Start scheduler ──
-exports.startScheduler = (req, res) => {
-  const interval = parseInt(req.body.interval) || 60;
-  const batchSize = parseInt(req.body.batchSize) || 10;
-  startScheduler(interval, batchSize);
-  res.redirect('/tracker?alert=scheduler-started');
-};
+// ─────────────────────────────────────────────────────────────
+// POST /tracker/stop — Hentikan queue
+// ─────────────────────────────────────────────────────────────
 
-// ── POST /tracker/scheduler/stop — Stop scheduler ──
-exports.stopScheduler = (req, res) => {
-  stopScheduler();
-  res.redirect('/tracker?alert=scheduler-stopped');
-};
-
-// ── GET /tracker/results/:alumniId — Detail per alumni ──
-exports.getAlumniResults = async (req, res) => {
+exports.stopTracker = (req, res) => {
   try {
-    const alumniId = parseInt(req.params.alumniId);
-    const results = await trackingDB.getResultsByAlumni(alumniId);
-    const alumni = await Alumni.getById(alumniId);
-
-    // Get search queries for this alumni
-    let queries = [];
-    if (alumni) {
-      queries = buildSearchQueries(alumni);
-    }
-
-    const enrichedResults = results.map(r => ({
-      ...r,
-      classificationLabel: classifyLabel(r.match_classification),
-      sourceIcon: SOURCES.find(s => s.id === r.source)?.icon || '🔍',
-      sourceName: SOURCES.find(s => s.id === r.source)?.name || r.source
-    }));
-
-    res.json({
-      alumni,
-      queries,
-      results: enrichedResults,
-      totalResults: results.length
-    });
+    scheduler.pauseQueue();
   } catch (err) {
-    console.error('[Tracker] Alumni results error:', err);
+    console.error('[TrackerCtrl] Stop error:', err.message);
+  }
+  res.redirect('/tracker?alert=stopped');
+};
+
+// ─────────────────────────────────────────────────────────────
+// GET /tracker/status — JSON polling
+// ─────────────────────────────────────────────────────────────
+
+exports.getStatus = (req, res) => {
+  try {
+    const status = scheduler.getStatus();
+    res.json(status);
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// ── POST /tracker/approve/:id — Approve hasil ──
-exports.approveResult = async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const note = req.body.note || '';
-    const result = await trackingDB.getResultById(id);
-    
-    if (!result) return res.redirect('/tracker');
+// ─────────────────────────────────────────────────────────────
+// GET /staging — Halaman verifikasi (data skor 40–69%)
+// ─────────────────────────────────────────────────────────────
 
-    // Mark as approved in tracking table
+exports.getStagingPage = async (req, res, next) => {
+  res.redirect('/pipeline');
+};
+
+// ─────────────────────────────────────────────────────────────
+// GET /staging/data — JSON list staging (AJAX)
+// ─────────────────────────────────────────────────────────────
+
+exports.getStagingData = async (req, res) => {
+  try {
+    const limit   = Math.min(parseInt(req.query.limit) || 50, 200);
+    const results = await trackingDB.getPendingResults(limit);
+    res.json({ success: true, data: results, total: results.length });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────
+// POST /staging/:id/approve — Approve via AJAX (Bagian 3: auto-update Supabase)
+// ─────────────────────────────────────────────────────────────
+
+exports.approveStaging = async (req, res) => {
+  const { id } = req.params;
+  const note    = req.body.note || 'Disetujui oleh admin';
+
+  try {
+    // 1. Ambil data staging dari trackingDB
+    const stagingResult = await trackingDB.getResultById(id);
+    if (!stagingResult) {
+      return res.status(404).json({ success: false, error: 'Staging result tidak ditemukan.' });
+    }
+
+    // 2. Resolve di staging tabel
     await trackingDB.resolveResult(id, 'approved', note);
 
-    // Update the alumni record with enriched data (non-destructive — append to jejak)
-    const alumni = await Alumni.getById(result.alumni_id);
+    // 3. Update tabel alumni di Supabase (8 titik data, hanya yang kosong)
+    const alumni = await Alumni.getById(stagingResult.alumni_id);
     if (alumni) {
-      const enrichment = [];
-      if (result.extracted_company && !alumni.tempatKerja) {
-        alumni.tempatKerja = result.extracted_company;
-        enrichment.push(`Workplace: ${result.extracted_company}`);
-      }
-      if (result.extracted_title && !alumni.posisi) {
-        alumni.posisi = result.extracted_title;
-        enrichment.push(`Position: ${result.extracted_title}`);
-      }
-      if (result.extracted_location && !alumni.alamatKerja) {
-        alumni.alamatKerja = result.extracted_location;
-        enrichment.push(`Location: ${result.extracted_location}`);
-      }
+      const EMPTY = (v) => !v || String(v).trim() === '' || v === '-';
+      const updatePayload = {};
 
-      // Enrich social media links if source matches
-      if (result.source === 'linkedin' && result.source_url && !alumni.linkedin) {
-        alumni.linkedin = result.source_url;
-      }
-      if (result.source === 'instagram' && result.source_url && !alumni.instagram) {
-        alumni.instagram = result.source_url;
-      }
-      if (result.source === 'facebook' && result.source_url && !alumni.facebook) {
-        alumni.facebook = result.source_url;
-      }
+      const fieldMap = [
+        ['posisi',            stagingResult.extracted_title,    'posisi'],
+        ['tempatKerja',       stagingResult.extracted_company,  'tempatKerja'],
+        ['alamatKerja',       stagingResult.extracted_location, 'alamatKerja'],
+      ];
+      fieldMap.forEach(([appField, newVal, updateKey]) => {
+        if (newVal && EMPTY(alumni[appField])) updatePayload[updateKey] = newVal;
+      });
 
-      // Append verified evidence to jejak
-      const timestamp = new Date().toISOString().split('T')[0];
-      const evidenceLog = `[TRACKER-VERIFIED ${timestamp}] Source: ${result.source} (${result.confidence_score}%) — ${result.raw_snippet}`;
-      alumni.jejak = alumni.jejak 
-        ? alumni.jejak + ' | ' + evidenceLog
-        : evidenceLog;
+      updatePayload.status          = 'Teridentifikasi dari Sumber Publik';
+      updatePayload.confidenceScore = stagingResult.confidence_score;
 
-      // Update confidence if tracker score is higher
-      if (result.confidence_score > (alumni.confidenceScore || 0)) {
-        alumni.confidenceScore = result.confidence_score;
-      }
+      const ts      = new Date().toISOString().split('T')[0];
+      const snippet = `[APPROVED ${ts}] Admin: ${req.session?.user?.username || 'admin'} — Score: ${stagingResult.confidence_score}%`;
+      updatePayload.jejak = alumni.jejak ? `${alumni.jejak} | ${snippet}` : snippet;
 
-      // Update status
-      if (result.confidence_score >= 70) {
-        alumni.status = 'Teridentifikasi dari Sumber Publik';
-      }
-
-      await Alumni.update(result.alumni_id, alumni);
+      // Merge dengan data alumni lama (Alumni.update butuh semua field)
+      await Alumni.update(alumni.id, { ...alumni, ...updatePayload });
     }
 
-    res.redirect('/tracker?alert=approved');
+    res.json({
+      success:  true,
+      message:  'Data berhasil diapprove dan diperbarui ke Supabase.',
+      id:       parseInt(id),
+      action:   'approved',
+    });
   } catch (err) {
-    console.error('[Tracker] Approve error:', err);
-    res.redirect('/tracker?alert=error');
+    console.error(`[StagingCtrl] Approve error (id ${id}):`, err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 };
 
-// ── POST /tracker/reject/:id — Reject hasil ──
-exports.rejectResult = async (req, res) => {
+// ─────────────────────────────────────────────────────────────
+// POST /staging/:id/reject — Reject via AJAX
+// ─────────────────────────────────────────────────────────────
+
+exports.rejectStaging = async (req, res) => {
+  const { id } = req.params;
+  const note    = req.body.note || 'Ditolak oleh admin';
+
   try {
-    const id = parseInt(req.params.id);
-    const note = req.body.note || 'Admin rejected — false positive or irrelevant match.';
-    
     await trackingDB.resolveResult(id, 'rejected', note);
-    res.redirect('/tracker?alert=rejected');
-  } catch (err) {
-    console.error('[Tracker] Reject error:', err);
-    res.redirect('/tracker?alert=error');
-  }
-};
 
-// ── GET /tracker/audit — Audit trail ──
-exports.getAudit = async (req, res) => {
-  try {
-    const audit = await trackingDB.getAuditTrail(100);
-    const enrichedAudit = audit.map(r => ({
-      ...r,
-      classificationLabel: classifyLabel(r.match_classification),
-      sourceIcon: SOURCES.find(s => s.id === r.source)?.icon || '🔍',
-      sourceName: SOURCES.find(s => s.id === r.source)?.name || r.source
-    }));
-
-    res.json({ audit: enrichedAudit });
+    res.json({
+      success: true,
+      message: 'Data ditolak dan dihapus dari staging.',
+      id:      parseInt(id),
+      action:  'rejected',
+    });
   } catch (err) {
-    console.error('[Tracker] Audit error:', err);
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// ── GET /tracker/queries/:jobId — Get queries for a job ──
-exports.getJobQueries = async (req, res) => {
-  try {
-    const jobId = parseInt(req.params.jobId);
-    const queries = await trackingDB.getQueriesByJob(jobId);
-    res.json({ queries });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(`[StagingCtrl] Reject error (id ${id}):`, err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 };

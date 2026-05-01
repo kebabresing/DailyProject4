@@ -1,443 +1,237 @@
 <%- include('partials/header') %>
 
 <div class="px-4 py-8 sm:px-0">
-    <!-- Page Header -->
-    <div class="mb-8 border-b border-slate-200/60 pb-5 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 bg-violet-50 border border-violet-100 rounded-lg text-violet-700 text-xs font-bold uppercase tracking-wider mb-3">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
-                </span>
-                Intelligent Tracking Engine
-            </div>
-            <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-violet-800 font-outfit tracking-tight">Alumni Tracker — Monitoring Dashboard</h1>
-            <p class="mt-2 text-sm text-slate-500 font-medium max-w-2xl">
-                Pelacakan otomatis berbasis sumber data publik. Sistem membentuk variasi query pencarian, mengekstrak informasi, 
-                menghitung confidence score, dan melakukan cross-validation antar sumber — semua terekam untuk audit.
-            </p>
-        </div>
-        <div class="flex gap-3 flex-wrap">
-            <!-- Manual Trigger -->
-            <form action="/tracker/run" method="POST" class="inline-flex">
-                <input type="hidden" name="batchSize" value="10">
-                <button type="submit" id="triggerScanBtn" class="inline-flex justify-center items-center px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-violet-500/20 transition-all font-outfit active:scale-95">
-                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                    Run Scan (10 Alumni)
-                </button>
-            </form>
-        </div>
+
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <div>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-600 tracking-tight font-outfit">Intelligent Tracker</h1>
+      <p class="text-sm text-slate-500 mt-1 font-medium">Pelacakan 8 titik data alumni secara otomatis dari sumber publik</p>
     </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-        <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl p-4 shadow-sm text-center">
-            <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Scans</div>
-            <div class="text-2xl font-black text-slate-800 mt-1 font-outfit"><%= stats.totalJobs %></div>
-        </div>
-        <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl p-4 shadow-sm text-center">
-            <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Queries</div>
-            <div class="text-2xl font-black text-slate-800 mt-1 font-outfit"><%= stats.totalQueries %></div>
-        </div>
-        <div class="bg-violet-50 border border-violet-100 rounded-2xl p-4 shadow-sm text-center">
-            <div class="text-xs text-violet-600 font-bold uppercase tracking-wider">Total Temuan</div>
-            <div class="text-2xl font-black text-violet-700 mt-1 font-outfit"><%= stats.totalResults %></div>
-        </div>
-        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 shadow-sm text-center">
-            <div class="text-xs text-amber-600 font-bold uppercase tracking-wider">Pending</div>
-            <div class="text-2xl font-black text-amber-700 mt-1 font-outfit"><%= stats.pendingResults %></div>
-        </div>
-        <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 shadow-sm text-center">
-            <div class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Approved</div>
-            <div class="text-2xl font-black text-emerald-700 mt-1 font-outfit"><%= stats.approvedResults %></div>
-        </div>
-        <div class="bg-rose-50 border border-rose-100 rounded-2xl p-4 shadow-sm text-center">
-            <div class="text-xs text-rose-600 font-bold uppercase tracking-wider">Rejected</div>
-            <div class="text-2xl font-black text-rose-700 mt-1 font-outfit"><%= stats.rejectedResults %></div>
-        </div>
+    <!-- Badge status realtime -->
+    <div id="status-badge" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border
+      <%= workerStatus.status === 'running' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200' %>">
+      <span class="w-2 h-2 rounded-full <%= workerStatus.status === 'running' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400' %>"></span>
+      <%= workerStatus.status === 'running' ? 'Tracker Berjalan' : 'Tracker Siap' %>
     </div>
+  </div>
 
-    <!-- Scheduler Control + Cross-Validation Stats -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <!-- Scheduler Control Panel -->
-        <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl p-6 shadow-lg lg:col-span-2">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold text-slate-800 font-outfit">⏱️ Scheduler Control</h3>
-                <span class="px-3 py-1 text-xs font-bold rounded-full <%= scheduler.isEnabled ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200' %>">
-                    <%= scheduler.isEnabled ? '● Active' : '○ Inactive' %>
-                </span>
-            </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-                <div class="bg-slate-50 rounded-xl p-3">
-                    <span class="text-xs font-bold text-slate-400 uppercase">Status</span>
-                    <div class="text-sm font-bold mt-1 <%= scheduler.status === 'running' ? 'text-violet-600' : scheduler.status === 'error' ? 'text-rose-600' : 'text-slate-700' %>">
-                        <%= scheduler.status.charAt(0).toUpperCase() + scheduler.status.slice(1) %>
-                    </div>
-                </div>
-                <div class="bg-slate-50 rounded-xl p-3">
-                    <span class="text-xs font-bold text-slate-400 uppercase">Interval</span>
-                    <div class="text-sm font-bold text-slate-700 mt-1"><%= scheduler.intervalMinutes %> min</div>
-                </div>
-                <div class="bg-slate-50 rounded-xl p-3">
-                    <span class="text-xs font-bold text-slate-400 uppercase">Batch Size</span>
-                    <div class="text-sm font-bold text-slate-700 mt-1"><%= scheduler.batchSize %> alumni</div>
-                </div>
-                <div class="bg-slate-50 rounded-xl p-3">
-                    <span class="text-xs font-bold text-slate-400 uppercase">Total Runs</span>
-                    <div class="text-sm font-bold text-slate-700 mt-1"><%= scheduler.totalRuns %></div>
-                </div>
-            </div>
-            <% if (scheduler.lastRun) { %>
-            <div class="text-xs text-slate-500 mb-4">
-                Last Run: <span class="font-semibold"><%= new Date(scheduler.lastRun).toLocaleString('id-ID') %></span>
-                <% if (scheduler.nextRun) { %> · Next: <span class="font-semibold"><%= new Date(scheduler.nextRun).toLocaleString('id-ID') %></span><% } %>
-            </div>
-            <% } %>
-            <% if (scheduler.lastError) { %>
-            <div class="bg-rose-50 border border-rose-200 rounded-xl p-3 mb-4 text-xs text-rose-700 font-medium">
-                ⚠️ Last Error: <%= scheduler.lastError %>
-            </div>
-            <% } %>
-            <div class="flex gap-3">
-                <% if (!scheduler.isEnabled) { %>
-                <form action="/tracker/scheduler/start" method="POST" class="inline-flex">
-                    <input type="hidden" name="interval" value="30">
-                    <input type="hidden" name="batchSize" value="10">
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all shadow-md shadow-emerald-500/20">
-                        ▶ Start Scheduler (30min)
-                    </button>
-                </form>
-                <% } else { %>
-                <form action="/tracker/scheduler/stop" method="POST" class="inline-flex">
-                    <button type="submit" class="px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white text-sm font-bold rounded-xl transition-all shadow-md">
-                        ⏸ Stop Scheduler
-                    </button>
-                </form>
-                <% } %>
-            </div>
-        </div>
+  <!-- Alert Banner -->
+  <% const alertMessages = {
+    'started'         : { text: 'Tracker dimulai! Proses berjalan di background — 1 alumni setiap 3–6 detik.', color: 'emerald' },
+    'stopped'         : { text: 'Queue dihentikan dan dikosongkan.', color: 'amber' },
+    'already-running' : { text: 'Tracker sedang berjalan. Tunggu hingga selesai atau klik Hentikan.', color: 'amber' },
+    'error'           : { text: 'Terjadi kesalahan. Lihat console untuk detail.', color: 'rose' },
+  }; %>
+  <% if (alertParam && alertMessages[alertParam]) {
+    const a = alertMessages[alertParam]; %>
+  <div class="mb-6 px-4 py-3 rounded-xl bg-<%= a.color %>-50 border border-<%= a.color %>-200 text-<%= a.color %>-800 text-sm font-semibold flex items-center gap-2">
+    <svg class="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <%- a.text %>
+  </div>
+  <% } %>
 
-        <!-- Cross-Validation & Source Stats -->
-        <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl p-6 shadow-lg">
-            <h3 class="text-lg font-bold text-slate-800 font-outfit mb-4">🔗 Cross-Validation</h3>
-            <div class="space-y-4">
-                <div class="bg-indigo-50 rounded-xl p-4 text-center">
-                    <div class="text-3xl font-black text-indigo-700 font-outfit"><%= stats.crossValidated %></div>
-                    <div class="text-xs font-bold text-indigo-500 uppercase mt-1">Cross-Validated Results</div>
-                </div>
-                <div class="bg-emerald-50 rounded-xl p-4 text-center">
-                    <div class="text-3xl font-black text-emerald-700 font-outfit"><%= stats.strongMatches %></div>
-                    <div class="text-xs font-bold text-emerald-500 uppercase mt-1">Kemungkinan Kuat (≥70%)</div>
-                </div>
-                <div class="text-xs text-slate-500 leading-relaxed">
-                    Cross-validation membandingkan temuan antar sumber publik. Jika nama dan institusi muncul di ≥2 sumber, 
-                    confidence score ditingkatkan +10% secara otomatis.
-                </div>
-            </div>
-        </div>
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white/80 border border-slate-200/60 rounded-2xl p-5 shadow-sm text-center sm:text-left">
+      <div class="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Alumni</div>
+      <div class="text-3xl font-black text-slate-800 mt-2 font-outfit"><%= stats.total.toLocaleString('id-ID') %></div>
     </div>
-
-    <!-- Data Source Coverage -->
-    <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl p-6 shadow-lg mb-8">
-        <h3 class="text-lg font-bold text-slate-800 font-outfit mb-4">📡 Sumber Data Publik</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <% sources.forEach(source => { %>
-            <div class="bg-slate-50 rounded-xl p-4 text-center hover:bg-indigo-50 transition-colors border border-slate-100 hover:border-indigo-200">
-                <div class="text-2xl mb-2"><%= source.icon %></div>
-                <div class="text-sm font-bold text-slate-700"><%= source.name %></div>
-                <div class="text-xs text-slate-400 mt-1">Public Search</div>
-            </div>
-            <% }) %>
-        </div>
+    <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 shadow-sm text-center sm:text-left">
+      <div class="text-xs text-emerald-600 font-bold uppercase tracking-wider">Teridentifikasi</div>
+      <div class="text-3xl font-black text-emerald-700 mt-2 font-outfit"><%= stats.teridentifikasi.toLocaleString('id-ID') %></div>
     </div>
-
-    <!-- Scan History (Jobs) -->
-    <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl shadow-lg mb-8 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-200/60 bg-slate-50/30 flex justify-between items-center">
-            <h3 class="text-lg font-bold text-slate-800 font-outfit">📋 Riwayat Scan</h3>
-            <span class="text-xs font-semibold text-slate-400"><%= jobs.length %> scan terakhir</span>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-200/60">
-                <thead class="bg-slate-50/50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Job ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Waktu</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Trigger</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Alumni</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Temuan</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Queries</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-200/60">
-                    <% if (jobs.length === 0) { %>
-                    <tr><td colspan="7" class="px-6 py-8 text-center text-slate-400 text-sm">Belum ada scan yang dijalankan. Klik "Run Scan" untuk memulai.</td></tr>
-                    <% } else { %>
-                    <% jobs.forEach(job => { %>
-                    <tr class="hover:bg-slate-50/50 transition-colors">
-                        <td class="px-6 py-3 text-sm font-bold text-slate-700">#<%= job.id %></td>
-                        <td class="px-6 py-3 text-xs text-slate-600"><%= job.started_at %></td>
-                        <td class="px-6 py-3">
-                            <span class="px-2 py-0.5 text-xs font-bold rounded-full <%= job.triggered_by === 'scheduler' ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-600' %>">
-                                <%= job.triggered_by %>
-                            </span>
-                        </td>
-                        <td class="px-6 py-3 text-sm font-semibold text-slate-700"><%= job.total_alumni %></td>
-                        <td class="px-6 py-3 text-sm font-bold text-violet-700"><%= job.total_results %></td>
-                        <td class="px-6 py-3">
-                            <span class="px-2 py-0.5 text-xs font-bold rounded-full 
-                                <%= job.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : job.status === 'running' ? 'bg-amber-100 text-amber-700 animate-pulse' : 'bg-rose-100 text-rose-700' %>">
-                                <%= job.status %>
-                            </span>
-                        </td>
-                        <td class="px-6 py-3">
-                            <button onclick="viewQueries(<%= job.id %>)" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold hover:underline">View Queries</button>
-                        </td>
-                    </tr>
-                    <% }) %>
-                    <% } %>
-                </tbody>
-            </table>
-        </div>
+    <div class="bg-amber-50 border border-amber-100 rounded-2xl p-5 shadow-sm text-center sm:text-left">
+      <div class="text-xs text-amber-600 font-bold uppercase tracking-wider">Perlu Verifikasi</div>
+      <div class="text-3xl font-black text-amber-700 mt-2 font-outfit">
+        <a href="/staging" class="hover:underline"><%= stats.perluVerifikasi.toLocaleString('id-ID') %></a>
+      </div>
     </div>
+    <div class="bg-rose-50 border border-rose-100 rounded-2xl p-5 shadow-sm text-center sm:text-left">
+      <div class="text-xs text-rose-600 font-bold uppercase tracking-wider">Belum Ditemukan</div>
+      <div class="text-3xl font-black text-rose-700 mt-2 font-outfit"><%= stats.belumDitemukan.toLocaleString('id-ID') %></div>
+    </div>
+  </div>
 
-    <!-- Pending Results (Needs Verification) -->
-    <div class="mb-8">
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-slate-800 font-outfit">⏳ Pending Verification (<%= pendingResults.length %>)</h3>
-        </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <% if (pendingResults.length === 0) { %>
-        <div class="bg-white/80 backdrop-blur border border-slate-200/60 rounded-2xl p-12 text-center shadow-lg">
-            <svg class="h-16 w-16 text-emerald-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-            <h2 class="text-2xl font-bold text-slate-800 font-outfit">Tidak Ada Pending!</h2>
-            <p class="text-slate-500 mt-2 text-sm max-w-md mx-auto">Semua hasil tracking sudah ditindaklanjuti. Jalankan scan baru untuk menemukan data dari sumber publik.</p>
-        </div>
+    <!-- Panel Kiri: Control Panel -->
+    <div class="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <h2 class="text-base font-bold text-slate-800 font-outfit">Panel Kontrol Tracker</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Proses 1000 alumni/batch · Jeda 3–6 detik antar alumni · Rate-limit aman</p>
+      </div>
+      <div class="p-6 space-y-5">
+
+        <% if (isAdmin) { %>
+        <!-- Form Mulai -->
+        <form action="/tracker/start" method="POST" id="startForm">
+          <div class="mb-4">
+            <label for="batchSize" class="block text-sm font-semibold text-slate-700 mb-1">Jumlah Alumni per Batch</label>
+            <input type="number" id="batchSize" name="batchSize" value="1000" min="1" max="1000"
+              class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+            <p class="text-xs text-slate-400 mt-1">Maksimal 1000. Worker memproses 1 alumni setiap 3–6 detik secara berurutan.</p>
+          </div>
+          <button type="submit" id="btnStart"
+            class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold rounded-xl text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 shadow-lg shadow-indigo-500/30 transition-all duration-200 hover:-translate-y-0.5"
+            <%= workerStatus.status === 'running' ? 'disabled' : '' %>
+            onclick="this.disabled=true; this.textContent='Memulai...'; this.form.submit();">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Mulai Batch Massal
+          </button>
+        </form>
+
+        <% if (workerStatus.status === 'running') { %>
+        <form action="/tracker/stop" method="POST">
+          <button type="submit"
+            class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-all duration-200">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+            Hentikan & Kosongkan Queue
+          </button>
+        </form>
+        <% } %>
+
+        <!-- Link ke Staging -->
+        <a href="/staging" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-bold rounded-xl text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition-all duration-200">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+          Staging Area Verifikasi (<%= stats.perluVerifikasi.toLocaleString('id-ID') %>)
+        </a>
+
         <% } else { %>
-        <div class="space-y-4">
-            <% pendingResults.forEach(result => { %>
-            <div class="bg-white border rounded-2xl shadow-lg shadow-slate-200/40 overflow-hidden ring-1 ring-slate-200/50">
-                <div class="p-5 sm:p-6">
-                    <!-- Header -->
-                    <div class="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                        <div class="flex items-center gap-3">
-                            <div class="h-12 w-12 bg-gradient-to-br from-violet-100 to-indigo-100 rounded-xl flex items-center justify-center text-violet-700 text-xl font-bold font-outfit border border-violet-200">
-                                <%= result.alumni_name.charAt(0) %>
-                            </div>
-                            <div>
-                                <h4 class="text-lg font-bold text-slate-800 font-outfit"><%= result.alumni_name %></h4>
-                                <div class="flex items-center gap-2 text-xs text-slate-500">
-                                    <span><%= result.sourceIcon %> <%= result.sourceName %></span>
-                                    <span>•</span>
-                                    <span>Job #<%= result.job_id %></span>
-                                    <span>•</span>
-                                    <span><%= result.created_at %></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <!-- Confidence Score Circle -->
-                            <div class="flex-shrink-0 h-14 w-14 relative">
-                                <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                                    <path class="text-slate-100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                    <path class="<%= result.confidence_score >= 70 ? 'text-emerald-500' : result.confidence_score >= 40 ? 'text-amber-500' : 'text-rose-500' %>" stroke-dasharray="<%= result.confidence_score %>, 100" stroke-width="3" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                                </svg>
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <span class="text-xs font-black text-slate-800"><%= result.confidence_score %>%</span>
-                                </div>
-                            </div>
-                            <div>
-                                <span class="block text-xs font-bold px-2.5 py-1 rounded-full border
-                                    <%= result.match_classification === 'strong_match' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : result.match_classification === 'needs_verification' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-rose-50 text-rose-700 border-rose-200' %>">
-                                    <%= result.classificationLabel %>
-                                </span>
-                                <% if (result.cross_validated) { %>
-                                <span class="block text-xs font-bold text-indigo-600 mt-1">🔗 Cross-Validated</span>
-                                <% } %>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Extracted Data -->
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <span class="text-xs font-bold text-slate-400 uppercase">Nama</span>
-                            <div class="text-sm font-semibold text-slate-800 mt-0.5"><%= result.extracted_name || '-' %></div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <span class="text-xs font-bold text-slate-400 uppercase">Posisi</span>
-                            <div class="text-sm font-semibold text-slate-800 mt-0.5"><%= result.extracted_title || '-' %></div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <span class="text-xs font-bold text-slate-400 uppercase">Instansi</span>
-                            <div class="text-sm font-semibold text-slate-800 mt-0.5"><%= result.extracted_company || '-' %></div>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <span class="text-xs font-bold text-slate-400 uppercase">Lokasi</span>
-                            <div class="text-sm font-semibold text-slate-800 mt-0.5"><%= result.extracted_location || '-' %></div>
-                        </div>
-                    </div>
-
-                    <!-- Evidence Snippet -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">
-                        <div class="flex items-center gap-2 mb-2">
-                            <a href="<%= result.source_url %>" target="_blank" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100 transition-colors">
-                                🔗 Source URL
-                            </a>
-                            <% if (result.extracted_activity) { %>
-                            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded"><%= result.extracted_activity %></span>
-                            <% } %>
-                        </div>
-                        <div class="text-sm text-slate-700 bg-white p-3 rounded-lg border border-slate-100 shadow-inner">
-                            <span class="text-xs font-bold text-slate-400 block mb-1 uppercase tracking-wider">Raw Evidence:</span>
-                            "<%= result.raw_snippet || 'No snippet available' %>"
-                        </div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex gap-3">
-                        <form action="/tracker/approve/<%= result.id %>" method="POST" class="flex-1">
-                            <input type="hidden" name="note" value="Approved via dashboard">
-                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-sm transition-all shadow-md shadow-emerald-500/20 active:scale-95">
-                                ✓ Approve & Enrich Data
-                            </button>
-                        </form>
-                        <form action="/tracker/reject/<%= result.id %>" method="POST" class="flex-1">
-                            <input type="hidden" name="note" value="Rejected via dashboard — false positive">
-                            <button type="submit" class="w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-sm transition-all active:scale-95">
-                                ✗ Reject as False Positive
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <% }) %>
+        <div class="px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-500 text-center">
+          Hanya admin yang dapat memulai tracker.
         </div>
         <% } %>
-    </div>
-</div>
 
-<!-- Query Viewer Modal -->
-<div id="queryModal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onclick="closeQueryModal()"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden z-10 max-h-[80vh]">
-        <div class="bg-gradient-to-br from-violet-600 to-indigo-600 px-6 py-4 flex justify-between items-center">
-            <h3 class="text-white font-bold font-outfit">📜 Search Queries — Job #<span id="modal-job-id"></span></h3>
-            <button onclick="closeQueryModal()" class="text-white/70 hover:text-white">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-            </button>
+        <!-- Info Mode -->
+        <div class="px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-100 text-xs text-indigo-700 space-y-1">
+          <p class="font-bold">Mode Aktif: <code class="bg-indigo-100 px-1.5 py-0.5 rounded"><%= osintMode %></code></p>
+          <p>Set <code>OSINT_MODE=real</code> di <code>.env</code> untuk scraping nyata via DuckDuckGo.</p>
         </div>
-        <div class="px-6 py-4 max-h-[60vh] overflow-y-auto" id="modal-queries-content">
-            <div class="text-center text-slate-400 py-8">Loading...</div>
-        </div>
-        <div class="border-t border-slate-100 px-6 py-3 bg-slate-50/50 text-right">
-            <button onclick="closeQueryModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-semibold rounded-lg transition-colors">Tutup</button>
-        </div>
+      </div>
     </div>
-</div>
 
-<!-- Toast Notification -->
-<div id="tracker-toast" class="fixed top-5 right-5 flex items-center w-full max-w-xs p-4 bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-xl transition-all duration-500 opacity-0 hidden" style="z-index: 150;">
-    <div id="tracker-toast-icon" class="inline-flex items-center justify-center flex-shrink-0 w-10 h-10 text-emerald-600 bg-emerald-100 rounded-xl border border-emerald-200">
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/></svg>
+    <!-- Panel Kanan: Status Progres (realtime polling) -->
+    <div class="bg-white/80 backdrop-blur-xl border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-800 font-outfit">Status Proses</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Update otomatis setiap 4 detik</p>
+        </div>
+        <button onclick="fetchStatus()" class="text-xs text-indigo-600 font-semibold hover:underline">Refresh</button>
+      </div>
+      <div class="p-6 space-y-4" id="status-panel">
+
+        <!-- Progress Bar -->
+        <div>
+          <div class="flex justify-between text-xs font-semibold text-slate-600 mb-2">
+            <span>Progress Sesi</span>
+            <span id="progress-text"><%= workerStatus.progress %></span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+            <div id="progress-bar"
+              class="h-3 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-700"
+              style="width: <%= workerStatus.sessionTotal > 0 ? Math.round((workerStatus.sessionProcessed / workerStatus.sessionTotal) * 100) : 0 %>%">
+            </div>
+          </div>
+        </div>
+
+        <!-- Stat Grid -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-slate-50 rounded-xl p-3 text-center">
+            <div class="text-xs text-slate-400 font-semibold uppercase tracking-wide">Diproses</div>
+            <div class="text-2xl font-black text-slate-800 font-outfit mt-1" id="stat-processed"><%= workerStatus.sessionProcessed %></div>
+          </div>
+          <div class="bg-emerald-50 rounded-xl p-3 text-center">
+            <div class="text-xs text-emerald-500 font-semibold uppercase tracking-wide">Auto-Approved</div>
+            <div class="text-2xl font-black text-emerald-700 font-outfit mt-1" id="stat-approved"><%= workerStatus.sessionAutoApproved %></div>
+          </div>
+          <div class="bg-amber-50 rounded-xl p-3 text-center">
+            <div class="text-xs text-amber-500 font-semibold uppercase tracking-wide">Staging</div>
+            <div class="text-2xl font-black text-amber-700 font-outfit mt-1" id="stat-staging"><%= workerStatus.sessionStaging %></div>
+          </div>
+          <div class="bg-indigo-50 rounded-xl p-3 text-center">
+            <div class="text-xs text-indigo-500 font-semibold uppercase tracking-wide">Queue Pending</div>
+            <div class="text-2xl font-black text-indigo-700 font-outfit mt-1" id="stat-queue"><%= workerStatus.queuePending %></div>
+          </div>
+        </div>
+
+        <% if (workerStatus.lastRun) { %>
+        <div class="text-xs text-slate-400 text-center">
+          Terakhir dijalankan: <%= new Date(workerStatus.lastRun).toLocaleString('id-ID') %>
+        </div>
+        <% } %>
+        <% if (workerStatus.lastError) { %>
+        <div class="px-3 py-2 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium">
+          Error terakhir: <%= workerStatus.lastError %>
+        </div>
+        <% } %>
+      </div>
     </div>
-    <div class="ms-4">
-        <span id="tracker-toast-title" class="font-bold text-slate-900 font-outfit text-sm">Success!</span>
-        <div id="tracker-toast-message" class="text-xs text-slate-500 font-medium mt-0.5"></div>
+
+  </div><!-- end grid -->
+
+  <!-- Cara Kerja -->
+  <div class="mt-6 bg-white/80 border border-slate-200/60 rounded-2xl shadow-sm p-6">
+    <h2 class="text-base font-bold text-slate-800 font-outfit mb-4">Cara Kerja Intelligent Tracker</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+      <% [
+        ['1','Bangun Query','Nama + Kampus + Prodi + Tahun Lulus alumni dipakai sebagai kata kunci presisi.'],
+        ['2','Scraping Web','DuckDuckGo Lite dicari query by query. Jeda 3–6 detik antar alumni.'],
+        ['3','Scoring & Filter','Score ≥70% → auto-approve. Score 40–69% → staging verifikasi admin.'],
+        ['4','Update Supabase','8 titik data (sosmed, email, pekerjaan, dll) diupdate otomatis (hanya field kosong).'],
+      ].forEach(([n, title, desc]) => { %>
+      <div class="flex gap-3">
+        <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center flex-shrink-0 text-xs"><%= n %></div>
+        <div><p class="font-semibold text-slate-700"><%= title %></p><p class="text-slate-500 text-xs mt-0.5"><%= desc %></p></div>
+      </div>
+      <% }) %>
     </div>
-</div>
+  </div>
+
+</div><!-- end page -->
 
 <script>
-    // ── Query Viewer ──
-    async function viewQueries(jobId) {
-        document.getElementById('modal-job-id').textContent = jobId;
-        document.getElementById('modal-queries-content').innerHTML = '<div class="text-center text-slate-400 py-8">Loading...</div>';
-        document.getElementById('queryModal').classList.remove('hidden');
+// ── Polling Status Setiap 4 Detik ────────────────────────────────────────────
+let pollingInterval = null;
 
-        try {
-            const res = await fetch(`/tracker/queries/${jobId}`);
-            const data = await res.json();
-            
-            if (data.queries.length === 0) {
-                document.getElementById('modal-queries-content').innerHTML = '<div class="text-center text-slate-400 py-8">No queries found for this job.</div>';
-                return;
-            }
+function fetchStatus() {
+  fetch('/tracker/status')
+    .then(r => r.json())
+    .then(s => {
+      // Progress
+      const pct = s.sessionTotal > 0 ? Math.round((s.sessionProcessed / s.sessionTotal) * 100) : 0;
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('progress-text').textContent = s.progress || '0/0';
 
-            // Group by alumni
-            const grouped = {};
-            data.queries.forEach(q => {
-                if (!grouped[q.alumni_name]) grouped[q.alumni_name] = [];
-                grouped[q.alumni_name].push(q);
-            });
+      // Stats
+      document.getElementById('stat-processed').textContent = s.sessionProcessed || 0;
+      document.getElementById('stat-approved').textContent  = s.sessionAutoApproved || 0;
+      document.getElementById('stat-staging').textContent   = s.sessionStaging || 0;
+      document.getElementById('stat-queue').textContent     = s.queuePending || 0;
 
-            let html = '';
-            for (const [name, queries] of Object.entries(grouped)) {
-                html += `<div class="mb-4">
-                    <h4 class="text-sm font-bold text-slate-700 mb-2">👤 ${name}</h4>
-                    <div class="space-y-1">`;
-                queries.forEach(q => {
-                    const sourceColors = {
-                        linkedin: 'bg-blue-50 text-blue-700 border-blue-200',
-                        scholar: 'bg-green-50 text-green-700 border-green-200',
-                        researchgate: 'bg-teal-50 text-teal-700 border-teal-200',
-                        instagram: 'bg-pink-50 text-pink-700 border-pink-200',
-                        facebook: 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    };
-                    const color = sourceColors[q.source] || 'bg-slate-50 text-slate-700 border-slate-200';
-                    html += `<div class="flex items-start gap-2 text-xs">
-                        <span class="px-2 py-0.5 rounded-full font-bold border ${color} flex-shrink-0">${q.source}</span>
-                        <code class="text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100 break-all">${q.query_text}</code>
-                    </div>`;
-                });
-                html += '</div></div>';
-            }
+      // Badge
+      const badge = document.getElementById('status-badge');
+      const isRunning = s.status === 'running';
+      badge.className = `inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border ${
+        isRunning ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+      }`;
+      badge.innerHTML = `<span class="w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}"></span>
+        ${isRunning ? 'Tracker Berjalan' : 'Tracker Siap'}`;
 
-            document.getElementById('modal-queries-content').innerHTML = html;
-        } catch (err) {
-            document.getElementById('modal-queries-content').innerHTML = `<div class="text-center text-rose-500 py-8">Error loading queries: ${err.message}</div>`;
-        }
-    }
+      // Hentikan polling jika selesai
+      if (!isRunning && pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+      }
+    })
+    .catch(() => {}); // silent fail
+}
 
-    function closeQueryModal() {
-        document.getElementById('queryModal').classList.add('hidden');
-    }
-
-    // ── Toast Alerts ──
-    window.addEventListener('load', function() {
-        const params = new URLSearchParams(window.location.search);
-        const alert = params.get('alert');
-        if (!alert) return;
-
-        const messages = {
-            'scan-complete': { title: 'Scan Selesai!', msg: `Ditemukan ${params.get('total') || 0} hasil dari sumber publik.`, color: 'emerald' },
-            'approved': { title: 'Data Disetujui!', msg: 'Hasil tracking berhasil di-merge ke data alumni.', color: 'emerald' },
-            'rejected': { title: 'Data Ditolak', msg: 'Hasil tracking ditandai sebagai false positive.', color: 'amber' },
-            'scheduler-started': { title: 'Scheduler Aktif!', msg: 'Pelacakan otomatis berjalan di background.', color: 'emerald' },
-            'scheduler-stopped': { title: 'Scheduler Dihentikan', msg: 'Pelacakan otomatis dihentikan.', color: 'slate' },
-            'scan-error': { title: 'Error!', msg: 'Terjadi kesalahan saat scan.', color: 'rose' },
-            'no-data': { title: 'Tidak Ada Data', msg: 'Tidak ada alumni yang bisa di-track.', color: 'amber' }
-        };
-
-        const config = messages[alert];
-        if (!config) return;
-
-        const toast = document.getElementById('tracker-toast');
-        document.getElementById('tracker-toast-title').textContent = config.title;
-        document.getElementById('tracker-toast-message').textContent = config.msg;
-        toast.classList.remove('hidden');
-        setTimeout(() => toast.classList.remove('opacity-0'), 100);
-        setTimeout(() => {
-            toast.classList.add('opacity-0');
-            setTimeout(() => toast.classList.add('hidden'), 500);
-        }, 5000);
-        window.history.replaceState({}, document.title, '/tracker');
-    });
-
-    // ── Keyboard shortcut ──
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') closeQueryModal();
-    });
+// Mulai polling jika tracker berjalan
+<% if (workerStatus.status === 'running') { %>
+pollingInterval = setInterval(fetchStatus, 4000);
+<% } %>
 </script>
 
 <%- include('partials/footer') %>

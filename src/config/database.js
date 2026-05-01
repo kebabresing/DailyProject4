@@ -23,9 +23,9 @@ function createMemoryDB() {
           a.namaLengkap.toLowerCase().includes(q) ||
           (a.prodi||'').toLowerCase().includes(q) ||
           (a.status||'').toLowerCase().includes(q)
-        ).sort((a, b) => b.id - a.id);
+        ).sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap));
       }
-      return [...data].sort((a, b) => b.id - a.id);
+      return [...data].sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap));
     },
     getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100, filters = {}) => {
       const clampedLimit = Math.min(limit, 100);
@@ -42,7 +42,7 @@ function createMemoryDB() {
       if (statusFilter) filtered = filtered.filter(a => a.status === statusFilter);
       if (tahunLulus) filtered = filtered.filter(a => a.tahunLulus == parseInt(tahunLulus));
       if (jenisPekerjaan) filtered = filtered.filter(a => a.jenisPekerjaan === jenisPekerjaan);
-      filtered.sort((a, b) => b.id - a.id);
+      filtered.sort((a, b) => a.namaLengkap.localeCompare(b.namaLengkap));
       const total = filtered.length;
       const alumniList = filtered.slice((page - 1) * clampedLimit, page * clampedLimit);
       return { alumniList, total };
@@ -149,14 +149,14 @@ async function createSQLiteDB() {
     getAlumni: async (searchQuery = '') => {
       if (searchQuery) {
         const q = `%${searchQuery}%`;
-        return await dbConfig.all('SELECT * FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR kampus LIKE ? OR status LIKE ? ORDER BY id DESC LIMIT 1000', [q, q, q, q]);
+        return await dbConfig.all('SELECT * FROM alumni WHERE namaLengkap LIKE ? OR prodi LIKE ? OR kampus LIKE ? OR status LIKE ? ORDER BY namaLengkap ASC LIMIT 1000', [q, q, q, q]);
       }
-      return await dbConfig.all('SELECT * FROM alumni ORDER BY id DESC LIMIT 1000');
+      return await dbConfig.all('SELECT * FROM alumni ORDER BY namaLengkap ASC LIMIT 1000');
     },
     getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100, filters = {}) => {
       const clampedLimit = Math.min(limit, 100);
       const offset = (page - 1) * clampedLimit;
-      const { tahunLulus, jenisPekerjaan } = filters;
+      const { tahunLulus, jenisPekerjaan, statusFilter } = filters;
 
       // Build dynamic WHERE clause
       const conditions = [];
@@ -168,10 +168,11 @@ async function createSQLiteDB() {
       }
       if (tahunLulus) { conditions.push('tahunLulus = ?'); params.push(parseInt(tahunLulus)); }
       if (jenisPekerjaan) { conditions.push('jenisPekerjaan = ?'); params.push(jenisPekerjaan); }
+      if (statusFilter) { conditions.push('status = ?'); params.push(statusFilter); }
 
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
       const [rows, countRow] = await Promise.all([
-        dbConfig.all(`SELECT * FROM alumni ${where} ORDER BY id DESC LIMIT ? OFFSET ?`, [...params, clampedLimit, offset]),
+        dbConfig.all(`SELECT * FROM alumni ${where} ORDER BY namaLengkap ASC LIMIT ? OFFSET ?`, [...params, clampedLimit, offset]),
         dbConfig.get(`SELECT COUNT(*) as count FROM alumni ${where}`, params),
       ]);
       return { alumniList: rows, total: countRow.count || 0 };
@@ -357,7 +358,7 @@ async function createSupabaseDB() {
     // ── Data listing (dengan server-side filtering + range pagination) ────
     getAlumni: async (searchQuery = '', limit = 500) => {
       // Dipakai: export excel, tracker scheduler — batasi dengan limit
-      let q = supabase.from('alumniv2').select('*').order('id', { ascending: false });
+      let q = supabase.from('alumniv2').select('*').order('nama', { ascending: true });
       if (searchQuery) {
         let orQuery = `nama.ilike.%${searchQuery}%,prodi.ilike.%${searchQuery}%,status.ilike.%${searchQuery}%,fakultas.ilike.%${searchQuery}%`;
         if (!isNaN(searchQuery) && String(searchQuery).trim() !== '') {
@@ -377,7 +378,7 @@ async function createSupabaseDB() {
 
       let q = supabase.from('alumniv2')
         .select('*', { count: 'exact' })
-        .order('id', { ascending: false })
+        .order('nama', { ascending: true })
         .range(from, to);
 
       // Filter status (default: semua)
