@@ -58,6 +58,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 
 // ── Session ───────────────────────────────────────────────────────────────
+app.set('trust proxy', 1); // Wajib untuk Vercel (secure cookie)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'umm-alumni-tracker-secret-2025',
   resave: false,
