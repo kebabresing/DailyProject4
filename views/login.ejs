@@ -168,26 +168,6 @@
     }
     @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
 
-    /* Divider + accounts info */
-    .accounts-divider {
-      display: flex; align-items: center; gap: 10px;
-      margin: 20px 0 16px; color: #94a3b8; font-size: 12px;
-    }
-    .accounts-divider::before, .accounts-divider::after {
-      content: ''; flex: 1; height: 1px; background: #e2e8f0;
-    }
-
-    .account-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-    .account-pill {
-      flex: 1; min-width: 140px;
-      background: rgba(239,246,255,.8);
-      border: 1px solid #bfdbfe;
-      border-radius: 10px; padding: 8px 12px;
-      cursor: pointer; transition: all .16s;
-    }
-    .account-pill:hover { background: #dbeafe; border-color: #93c5fd; }
-    .account-pill-label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
-    .account-pill-user  { font-size: 12px; font-weight: 600; color: #1e40af; margin-top: 2px; }
 
     /* Bottom note */
     .login-note {
@@ -274,18 +254,6 @@
       <button type="submit" class="btn-login" id="submitBtn">Masuk ke Dashboard</button>
     </form>
 
-    <!-- Quick login pills -->
-    <div class="accounts-divider">Akun demo</div>
-    <div class="account-pills">
-      <div class="account-pill" onclick="fillLogin('admin','admin123')">
-        <div class="account-pill-label">Administrator</div>
-        <div class="account-pill-user">admin / admin123</div>
-      </div>
-      <div class="account-pill" onclick="fillLogin('viewer','viewer123')">
-        <div class="account-pill-label">Viewer</div>
-        <div class="account-pill-user">viewer / viewer123</div>
-      </div>
-    </div>
 
     <div class="login-note">
       &copy; <%= new Date().getFullYear() %> Alumni Tracker UMM &mdash; Akhmad Zamri Ardani
@@ -305,12 +273,6 @@
       : '<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>';
   });
 
-  // Quick fill
-  function fillLogin(u, p) {
-    document.getElementById('username').value = u;
-    document.getElementById('password').value = p;
-    document.getElementById('loginForm').requestSubmit();
-  }
 
   // Loading state
   document.getElementById('loginForm')?.addEventListener('submit', function() {

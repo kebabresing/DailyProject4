@@ -29,7 +29,7 @@ function createMemoryDB() {
     },
     getAlumniPaginated: async (searchQuery = '', page = 1, limit = 100, filters = {}) => {
       const clampedLimit = Math.min(limit, 100);
-      const { tahunLulus, jenisPekerjaan } = filters;
+      const { tahunLulus, jenisPekerjaan, statusFilter } = filters;
       let filtered = [...data];
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -39,6 +39,7 @@ function createMemoryDB() {
           (a.prodi||'').toLowerCase().includes(q)
         );
       }
+      if (statusFilter) filtered = filtered.filter(a => a.status === statusFilter);
       if (tahunLulus) filtered = filtered.filter(a => a.tahunLulus == parseInt(tahunLulus));
       if (jenisPekerjaan) filtered = filtered.filter(a => a.jenisPekerjaan === jenisPekerjaan);
       filtered.sort((a, b) => b.id - a.id);
@@ -103,8 +104,27 @@ async function createSQLiteDB() {
   await dbConfig.exec(`
     CREATE TABLE IF NOT EXISTS alumni (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      namaLengkap TEXT, prodi TEXT, tahunLulus INTEGER,
-      kampus TEXT, status TEXT, confidenceScore INTEGER, jejak TEXT
+      namaLengkap TEXT NOT NULL,
+      nim TEXT,
+      tahunMasuk INTEGER,
+      tahunLulus INTEGER,
+      fakultas TEXT,
+      prodi TEXT,
+      kampus TEXT,
+      status TEXT,
+      confidenceScore INTEGER DEFAULT 0,
+      jejak TEXT,
+      email TEXT,
+      noHp TEXT,
+      linkedin TEXT,
+      instagram TEXT,
+      facebook TEXT,
+      tiktok TEXT,
+      tempatKerja TEXT,
+      alamatKerja TEXT,
+      posisi TEXT,
+      jenisPekerjaan TEXT,
+      sosmedTempatKerja TEXT
     )
   `);
 
@@ -158,13 +178,44 @@ async function createSQLiteDB() {
     },
     getAlumniById: async (id) => await dbConfig.get('SELECT * FROM alumni WHERE id = ?', [id]),
     addAlumni: async (alumni) => {
-      const { namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak } = alumni;
-      const result = await dbConfig.run('INSERT INTO alumni (namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak) VALUES (?, ?, ?, ?, ?, ?, ?)', [namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak]);
+      const result = await dbConfig.run(
+        `INSERT INTO alumni
+          (namaLengkap, nim, tahunMasuk, tahunLulus, fakultas, prodi, kampus, status, confidenceScore, jejak,
+           email, noHp, linkedin, instagram, facebook, tiktok, tempatKerja, alamatKerja, posisi, jenisPekerjaan, sosmedTempatKerja)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          alumni.namaLengkap, alumni.nim || null, alumni.tahunMasuk || null,
+          parseInt(alumni.tahunLulus) || null, alumni.fakultas || null,
+          alumni.prodi, alumni.kampus || null, alumni.status,
+          parseInt(alumni.confidenceScore) || 0, alumni.jejak || null,
+          alumni.email || null, alumni.noHp || null, alumni.linkedin || null,
+          alumni.instagram || null, alumni.facebook || null, alumni.tiktok || null,
+          alumni.tempatKerja || null, alumni.alamatKerja || null, alumni.posisi || null,
+          alumni.jenisPekerjaan || null, alumni.sosmedTempatKerja || null,
+        ]
+      );
       return { ...alumni, id: result.lastID };
     },
     updateAlumni: async (id, updateData) => {
-      const { namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak } = updateData;
-      await dbConfig.run('UPDATE alumni SET namaLengkap = ?, prodi = ?, tahunLulus = ?, kampus = ?, status = ?, confidenceScore = ?, jejak = ? WHERE id = ?', [namaLengkap, prodi, tahunLulus, kampus, status, confidenceScore, jejak, id]);
+      await dbConfig.run(
+        `UPDATE alumni SET
+          namaLengkap = ?, nim = ?, tahunMasuk = ?, tahunLulus = ?, fakultas = ?, prodi = ?,
+          kampus = ?, status = ?, confidenceScore = ?, jejak = ?,
+          email = ?, noHp = ?, linkedin = ?, instagram = ?, facebook = ?, tiktok = ?,
+          tempatKerja = ?, alamatKerja = ?, posisi = ?, jenisPekerjaan = ?, sosmedTempatKerja = ?
+         WHERE id = ?`,
+        [
+          updateData.namaLengkap, updateData.nim || null, updateData.tahunMasuk || null,
+          parseInt(updateData.tahunLulus) || null, updateData.fakultas || null,
+          updateData.prodi, updateData.kampus || null, updateData.status,
+          parseInt(updateData.confidenceScore) || 0, updateData.jejak || null,
+          updateData.email || null, updateData.noHp || null, updateData.linkedin || null,
+          updateData.instagram || null, updateData.facebook || null, updateData.tiktok || null,
+          updateData.tempatKerja || null, updateData.alamatKerja || null, updateData.posisi || null,
+          updateData.jenisPekerjaan || null, updateData.sosmedTempatKerja || null,
+          id,
+        ]
+      );
       return updateData;
     },
     deleteAlumni: async (id) => {
@@ -204,6 +255,22 @@ async function createSQLiteDB() {
         `SELECT tahunLulus, COUNT(*) AS count FROM alumni WHERE tahunLulus IS NOT NULL AND tahunLulus > 0 GROUP BY tahunLulus ORDER BY tahunLulus`
       );
       return rows.map(r => [String(r.tahunLulus), r.count]);
+    },
+    getPekerjaanDistribution: async () => {
+      const types = ['PNS', 'Swasta', 'BUMN', 'Wirausaha', 'Freelance'];
+      const results = await Promise.all(
+        types.map(t => dbConfig.get('SELECT COUNT(*) as count FROM alumni WHERE jenisPekerjaan = ?', [t]))
+      );
+      return types.map((t, i) => [t, results[i]?.count || 0]);
+    },
+    getTopCompanies: async (topN = 10) => {
+      const rows = await dbConfig.all(
+        `SELECT tempatKerja, COUNT(*) AS count FROM alumni
+         WHERE tempatKerja IS NOT NULL AND tempatKerja != ''
+         GROUP BY tempatKerja ORDER BY count DESC LIMIT ?`,
+        [topN]
+      );
+      return rows.map(r => [r.tempatKerja, r.count]);
     },
   };
 }

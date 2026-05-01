@@ -15,6 +15,7 @@ router.post('/logout', logout);
 
 // ── Dashboard & Laporan (login required) ──────────────────────────────────
 router.get('/', requireLogin, alumniController.getLaporan);
+router.get('/laporan', requireLogin, alumniController.getLaporan);  // alias eksplisit
 
 // ── Data Master ────────────────────────────────────────────────────────────
 router.get('/data',       requireLogin,              alumniController.index);
@@ -22,7 +23,7 @@ router.get('/add',        requireLogin, requireAdmin, alumniController.formAdd);
 router.post('/add',       requireLogin, requireAdmin, alumniController.add);
 router.get('/edit/:id',   requireLogin, requireAdmin, alumniController.formEdit);
 router.post('/edit/:id',  requireLogin, requireAdmin, alumniController.edit);
-router.get('/delete/:id', requireLogin, requireAdmin, alumniController.delete);
+router.post('/delete/:id', requireLogin, requireAdmin, alumniController.delete);
 
 // ── Export ────────────────────────────────────────────────────────────────
 router.get('/export', requireLogin, alumniController.exportExcel);
@@ -35,5 +36,8 @@ router.get('/pipeline/resolve/:id', requireLogin, requireAdmin, alumniController
 router.get('/import',          requireLogin, requireAdmin, alumniController.getImport);
 router.post('/import/preview', requireLogin, requireAdmin, upload.single('file'), alumniController.previewImport);
 router.post('/import/confirm', requireLogin, requireAdmin, alumniController.confirmImport);
+// ── API Scraper ────────────────────────────────────────────────────────────
+router.get('/api/scrape', requireLogin, requireAdmin, alumniController.scrapeAlumniData);
+router.post('/api/scrape/bulk', requireLogin, requireAdmin, alumniController.bulkScrape);
 
 module.exports = router;

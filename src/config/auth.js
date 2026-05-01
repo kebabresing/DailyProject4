@@ -29,8 +29,8 @@ function findUser(username) {
   return USERS.find(u => u.username === username) || null;
 }
 
-function verifyPassword(password, hash) {
-  return bcrypt.compareSync(password, hash);
+async function verifyPassword(password, hash) {
+  return bcrypt.compare(password, hash);
 }
 
 module.exports = { findUser, verifyPassword };

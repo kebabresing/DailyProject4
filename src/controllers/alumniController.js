@@ -15,6 +15,12 @@ async function getCachedStats() {
 }
 function invalidateStatsCache() { _statsCache = null; _statsCacheTime = 0; }
 
+// ── Pending count (sidebar badge) — cached alongside stats ────────────────
+async function getPendingCount() {
+  const stats = await getCachedStats();
+  return stats.perluVerifikasi || 0;
+}
+
 const JENIS_OPTIONS  = ['PNS', 'Swasta', 'BUMN', 'Wirausaha', 'Freelance'];
 const STATUS_OPTIONS = [
   'Teridentifikasi dari Sumber Publik',
@@ -50,11 +56,11 @@ exports.index = async (req, res, next) => {
       return admin ? enriched : maskSensitiveData(enriched);
     });
 
-    const alert = req.query.alert || null;
+    const [alert, pendingCount] = [req.query.alert || null, await getPendingCount()];
     res.render('index', {
       title: 'Data Master - Sistem Pelacakan Alumni',
       alumniList, search, page, totalPages: Math.ceil(total / limit),
-      total, stats, filters, alert,
+      total, stats, filters, alert, pendingCount,
       JENIS_OPTIONS, TAHUN_OPTIONS, STATUS_OPTIONS,
       isAdmin: admin,
     });
@@ -62,8 +68,9 @@ exports.index = async (req, res, next) => {
 };
 
 // ── GET /add ─────────────────────────────────────────────────────────────
-exports.formAdd = (req, res) => {
-  res.render('form', { title: 'Tambah Data Alumni', isEdit: false, alumni: {}, error: null, suggestions: {}, isAdmin: isAdmin(req) });
+exports.formAdd = async (req, res) => {
+  const pendingCount = await getPendingCount();
+  res.render('form', { title: 'Tambah Data Alumni', isEdit: false, alumni: {}, error: null, suggestions: {}, isAdmin: isAdmin(req), pendingCount });
 };
 
 // ── POST /add ─────────────────────────────────────────────────────────────
@@ -91,10 +98,11 @@ exports.formEdit = async (req, res, next) => {
     const allAlumni = await Alumni.getAll('', 500);
     const suggestions = autoSuggest(alumni, allAlumni);
 
+    const pendingCount = await getPendingCount();
     res.render('form', {
       title: 'Edit Data Alumni', isEdit: true,
       alumni: { ...alumni, completenessScore: score, completenessBreakdown: breakdown },
-      suggestions, error: null, isAdmin: isAdmin(req),
+      suggestions, error: null, isAdmin: isAdmin(req), pendingCount,
     });
   } catch (err) { next(err); }
 };
@@ -138,10 +146,11 @@ exports.getLaporan = async (req, res, next) => {
       ? Math.round(((stats.bekerja + (stats.wirausaha || 0)) / stats.total) * 100)
       : 0;
 
+    const pendingCount = await getPendingCount();
     res.render('laporan', {
       title: 'Laporan & Statistik Pelacakan',
-      stats, prodiChart, tahunChart, pekChart, topComp, persenBekerja,
-      isAdmin: isAdmin(req),
+      stats, prodiChart, tahunChart, pekChart, topCompanies: topComp, persenBekerja,
+      isAdmin: isAdmin(req), pendingCount,
     });
   } catch (err) { next(err); }
 };
@@ -188,7 +197,8 @@ exports.getPipeline = async (req, res, next) => {
       a.status === 'Perlu Verifikasi Manual' ||
       (a.confidenceScore < 70 && a.status !== 'Belum Ditemukan di Sumber Publik')
     );
-    res.render('pipeline', { title: 'Data Scraping & Verification Pipeline', pendingAlumni });
+    const pendingCount = pendingAlumni.length;
+    res.render('pipeline', { title: 'Data Scraping & Verification Pipeline', pendingAlumni, pendingCount });
   } catch (err) { next(err); }
 };
 
@@ -215,7 +225,8 @@ exports.resolvePipeline = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-exports.getImport = (req, res) => {
+exports.getImport = async (req, res) => {
+  const pendingCount = await getPendingCount();
   res.render('import', {
     title: 'Import Data CSV/Excel',
     preview: null, errors: [], totalRows: 0, columns: [],
@@ -223,6 +234,7 @@ exports.getImport = (req, res) => {
     alertType: req.query.alert || null,
     imported:  req.query.imported || 0,
     skipped:   req.query.skipped  || 0,
+    pendingCount,
   });
 };
 
@@ -261,6 +273,7 @@ exports.previewImport = async (req, res, next) => {
     // Simpan ke session sementara untuk konfirmasi import
     req.session.importData = rows;
 
+    const pendingCount = await getPendingCount();
     res.render('import', {
       title: 'Import Data CSV/Excel',
       preview: preview.slice(0, 20), // tampilkan 20 baris pertama
@@ -268,6 +281,10 @@ exports.previewImport = async (req, res, next) => {
       errors: errors.slice(0, 50),
       columns: Object.keys(rows[0] || {}),
       isAdmin: isAdmin(req),
+      alertType: null,
+      imported: 0,
+      skipped: 0,
+      pendingCount,
     });
   } catch (err) { next(err); }
 };
@@ -319,4 +336,81 @@ exports.confirmImport = async (req, res, next) => {
     invalidateStatsCache();
     res.redirect(`/import?alert=import-success&imported=${imported}&skipped=${skipped}`);
   } catch (err) { next(err); }
+};
+
+// ── GET /api/scrape ───────────────────────────────────────────────────────
+exports.scrapeAlumniData = async (req, res, next) => {
+  try {
+    const { name, kampus } = req.query;
+    if (!name) return res.status(400).json({ error: 'Name is required for scraping' });
+    
+    const { scrapeOSINT } = require('../services/osintScraper');
+    const data = await scrapeOSINT(name, kampus || 'Universitas Muhammadiyah Malang');
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── POST /api/scrape/bulk ──────────────────────────────────────────────────
+let isBulkScraping = false;
+exports.bulkScrape = async (req, res, next) => {
+  if (isBulkScraping) {
+    return res.status(400).json({ error: 'Proses bulk scraping sedang berjalan' });
+  }
+  
+  res.json({ message: 'Proses Bulk Scraping (Maksimal 1000 data) dimulai di background. Cek terminal untuk progres.' });
+  
+  isBulkScraping = true;
+  
+  // Run asynchronously in the background so request doesn't timeout
+  (async () => {
+    try {
+      const Alumni = require('../config/database');
+      const { scrapeOSINT } = require('../services/osintScraper');
+      
+      // Ambil hingga 1000 alumni untuk di-scrape
+      const allAlumni = await Alumni.getAlumni('', 1000);
+      
+      // Filter yang belum diverifikasi atau datanya kosong
+      const targets = allAlumni.filter(a => a.status !== 'Teridentifikasi dari Sumber Publik').slice(0, 1000);
+      
+      console.log(`[OSINT BULK] Memulai auto-scrape untuk ${targets.length} alumni...`);
+      
+      for (let i = 0; i < targets.length; i++) {
+        const alumni = targets[i];
+        console.log(`[OSINT BULK] (${i+1}/${targets.length}) Scraping: ${alumni.namaLengkap}...`);
+        
+        const scrapedData = await scrapeOSINT(alumni.namaLengkap, alumni.kampus || 'Universitas Muhammadiyah Malang');
+        
+        let hasNewData = false;
+        const updateData = { ...alumni };
+        
+        const fields = ['linkedin', 'instagram', 'facebook', 'tiktok', 'email', 'noHp', 'tempatKerja', 'alamatKerja', 'posisi', 'jenisPekerjaan', 'sosmedTempatKerja'];
+        
+        fields.forEach(field => {
+          if (scrapedData[field] && !updateData[field]) {
+            updateData[field] = scrapedData[field];
+            hasNewData = true;
+          }
+        });
+        
+        if (hasNewData) {
+          updateData.status = 'Teridentifikasi dari Sumber Publik';
+          updateData.confidenceScore = Math.max(alumni.confidenceScore || 0, 85);
+          await Alumni.updateAlumni(alumni.id, updateData);
+          console.log(`[OSINT BULK] -> Data disimpan untuk ${alumni.namaLengkap}`);
+        } else {
+          console.log(`[OSINT BULK] -> Tidak ada data publik baru untuk ${alumni.namaLengkap}`);
+        }
+      }
+      
+      console.log(`[OSINT BULK] Selesai.`);
+      invalidateStatsCache();
+    } catch (error) {
+      console.error(`[OSINT BULK] Error:`, error);
+    } finally {
+      isBulkScraping = false;
+    }
+  })();
 };

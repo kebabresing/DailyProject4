@@ -33,7 +33,7 @@ exports.getDashboard = async (req, res) => {
     });
   } catch (err) {
     console.error('[Tracker] Dashboard error:', err);
-    res.status(500).send('Tracker dashboard error: ' + err.message);
+    next(err);
   }
 };
 

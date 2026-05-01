@@ -9,11 +9,15 @@ function getLogin(req, res) {
 }
 
 // POST /login
-function postLogin(req, res) {
+async function postLogin(req, res) {
   const { username, password } = req.body;
+  if (!username || !password) {
+    req.session.loginError = 'Username dan password wajib diisi.';
+    return res.redirect('/login');
+  }
   const user = findUser(username);
 
-  if (!user || !verifyPassword(password, user.passwordHash)) {
+  if (!user || !(await verifyPassword(password, user.passwordHash))) {
     req.session.loginError = 'Username atau password salah.';
     return res.redirect('/login');
   }

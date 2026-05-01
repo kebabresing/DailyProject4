@@ -25,6 +25,10 @@
                 <svg class="-ml-1 mr-2 h-4 w-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 Export Excel
             </a>
+            <button onclick="startBulkScrape()" class="inline-flex items-center px-4 py-2.5 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm transition-all duration-200 hover:-translate-y-0.5">
+                <svg class="-ml-1 mr-2 h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                Bulk Scrape
+            </button>
         </div>
     </div>
 
@@ -399,9 +403,11 @@
                 </div>
             </div>
             <div class="bg-slate-50/80 px-4 py-4 sm:px-8 sm:flex sm:flex-row-reverse border-t border-slate-100">
-                <a id="btn-confirm-delete" href="#" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm shadow-rose-200 px-5 py-2.5 bg-rose-600 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none transition-all duration-200 sm:ml-3 sm:w-auto">
-                    Ya, Hapus Data
-                </a>
+                <form id="deleteForm" action="#" method="POST" class="sm:ml-3">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm shadow-rose-200 px-5 py-2.5 bg-rose-600 text-sm font-semibold text-white hover:bg-rose-700 focus:outline-none transition-all duration-200 sm:w-auto">
+                        Ya, Hapus Data
+                    </button>
+                </form>
                 <button type="button" onclick="closeDeleteModal()" class="mt-3 w-full inline-flex justify-center rounded-xl border border-slate-300 shadow-sm px-5 py-2.5 bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none transition-all duration-200 sm:mt-0 sm:ml-3 sm:w-auto">
                     Batal
                 </button>
@@ -414,7 +420,7 @@
     // ── Delete Modal ──────────────────────────────
     function openDeleteModal(id, nama) {
         document.getElementById('delete-alumni-name').textContent = nama;
-        document.getElementById('btn-confirm-delete').href = '/delete/' + id;
+        document.getElementById('deleteForm').action = '/delete/' + id;
         document.getElementById('deleteModal').classList.remove('hidden');
     }
     function closeDeleteModal() {
@@ -593,6 +599,24 @@
     // Hanya jika tidak ada modal/toast yang terbuka
     if (!document.querySelector('.modal-open')) {
         searchInput.focus({ preventScroll: true });
+    }
+
+    function startBulkScrape() {
+        if (confirm("Apakah Anda yakin ingin melakukan bulk scraping pada maksimal 1000 data alumni yang belum teridentifikasi?\n\nProses ini akan berjalan di latar belakang (Background) dan data akan diperbarui secara bertahap.")) {
+            fetch('/api/scrape/bulk', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Gagal memulai: ' + data.error);
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => {
+                alert('Terjadi kesalahan koneksi.');
+                console.error(err);
+            });
+        }
     }
 </script>
 

@@ -36,8 +36,14 @@
                             <div class="grid grid-cols-1 gap-5">
                                 <div>
                                     <label for="namaLengkap" class="block text-sm font-bold text-slate-700 font-outfit">Nama Lengkap</label>
-                                    <input type="text" name="namaLengkap" id="namaLengkap" class="mt-2 p-3 block w-full bg-white/50 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700" required value="<%= alumni.namaLengkap || '' %>">
-                                </div>
+                                    <div class="flex gap-2 mt-2">
+                                        <input type="text" name="namaLengkap" id="namaLengkap" class="p-3 block w-full bg-white/50 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all font-medium text-slate-700" required value="<%= alumni.namaLengkap || '' %>">
+                                        <button type="button" onclick="runOSINTScrape()" class="shrink-0 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-bold rounded-xl text-white bg-slate-800 hover:bg-slate-900 focus:outline-none transition-all shadow-md">
+                                            <svg class="w-4 h-4 mr-1 animate-spin hidden" id="scrapeSpinner" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                            <span id="scrapeBtnText">🔍 Scrape OSINT</span>
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-slate-500 mt-1">Gunakan tombol Scrape OSINT untuk mencari data sosial media, kontak, dan pekerjaan secara otomatis (Fitur AI Tracker).</p>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                     <div>
                                         <label for="nim" class="block text-sm font-bold text-slate-700 font-outfit">NIM</label>
@@ -177,5 +183,86 @@
         </div>
     </div>
 </div>
+<script>
+async function runOSINTScrape() {
+    const nameInput = document.getElementById('namaLengkap').value;
+    const kampusInput = document.getElementById('kampus') ? document.getElementById('kampus').value : 'Universitas Muhammadiyah Malang';
+    
+    if (!nameInput.trim()) {
+        alert('Silakan isi Nama Lengkap terlebih dahulu sebelum melakukan scraping!');
+        return;
+    }
+
+    const btnText = document.getElementById('scrapeBtnText');
+    const spinner = document.getElementById('scrapeSpinner');
+    
+    btnText.textContent = 'Mencari...';
+    spinner.classList.remove('hidden');
+
+    try {
+        const res = await fetch(`/api/scrape?name=${encodeURIComponent(nameInput)}&kampus=${encodeURIComponent(kampusInput)}`);
+        const data = await res.json();
+        
+        let foundAny = false;
+
+        // Auto-fill fields if found
+        const mapData = {
+            'linkedin': 'linkedin',
+            'instagram': 'instagram',
+            'facebook': 'facebook',
+            'tiktok': 'tiktok',
+            'email': 'email',
+            'noHp': 'noHp',
+            'tempatKerja': 'tempatKerja',
+            'alamatKerja': 'alamatKerja',
+            'posisi': 'posisi',
+            'sosmedTempatKerja': 'sosmedTempatKerja'
+        };
+
+        for (const [key, id] of Object.entries(mapData)) {
+            if (data[key] && document.getElementById(id)) {
+                if (!document.getElementById(id).value) {
+                    document.getElementById(id).value = data[key];
+                    document.getElementById(id).classList.add('bg-green-50', 'border-green-300');
+                    setTimeout(() => document.getElementById(id).classList.remove('bg-green-50', 'border-green-300'), 2000);
+                    foundAny = true;
+                }
+            }
+        }
+
+        // Dropdown Jenis Pekerjaan
+        if (data.jenisPekerjaan && document.getElementById('jenisPekerjaan')) {
+            const select = document.getElementById('jenisPekerjaan');
+            if (!select.value) {
+                select.value = data.jenisPekerjaan;
+                select.classList.add('bg-green-50', 'border-green-300');
+                setTimeout(() => select.classList.remove('bg-green-50', 'border-green-300'), 2000);
+                foundAny = true;
+            }
+        }
+
+        if (foundAny) {
+            // Update Confidence Score 
+            const conf = document.getElementById('confidenceScore');
+            if (conf && parseInt(conf.value) < 80) conf.value = 85;
+            
+            // Update Status
+            const status = document.getElementById('status');
+            if (status) status.value = 'Teridentifikasi dari Sumber Publik';
+
+            alert('Scraping berhasil! Data ditemukan dan form telah diisi otomatis.');
+        } else {
+            alert('Scraping selesai, namun tidak ada data publik yang ditemukan untuk alumni ini.');
+        }
+        
+    } catch (err) {
+        alert('Terjadi kesalahan saat melakukan scraping OSINT.');
+        console.error(err);
+    } finally {
+        btnText.textContent = '🔍 Scrape OSINT';
+        spinner.classList.add('hidden');
+    }
+}
+</script>
 
 <%- include('partials/footer') %>
